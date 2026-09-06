@@ -1,0 +1,4 @@
+fixtures/*/yarn.lock
+yarn.lock
+dist/
+.expo/

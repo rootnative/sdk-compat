@@ -1,0 +1,22 @@
+{
+  "name": "fixture-sdk-54",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "bundle": "expo export --platform android --no-bytecode --output-dir dist"
+  },
+  "dependencies": {
+    "expo": "~54.0.36",
+    "expo-status-bar": "~3.0.9",
+    "react": "19.1.0",
+    "react-native": "0.81.5",
+    "react-native-reanimated": "~4.1.1",
+    "react-native-worklets": "~0.5.1"
+  },
+  "devDependencies": {
+    "@types/react": "~19.1.0",
+    "babel-preset-expo": "~54.0.12",
+    "typescript": "~5.9.2"
+  }
+}

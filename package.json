@@ -1,0 +1,12 @@
+{
+  "name": "sdk-compat",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "check:peers": "node scripts/check-peers.mjs"
+  },
+  "dependencies": {
+    "semver": "^7.6.3"
+  }
+}
