@@ -17,7 +17,9 @@ other — every fixture owns its lockfile and resolves its own runtime.
 ## Layout
 
     fixtures/sdk-54/       Expo 54 · RN 0.81 · Reanimated 4.1 · worklets 0.5
+    fixtures/sdk-57/       Expo 57 · RN 0.86 · Reanimated 4.5 · worklets 0.10
     scripts/check-peers.mjs
+    peer-exceptions.json
 
 ## Running one cell
 
@@ -49,6 +51,21 @@ tree outright with `ERESOLVE`. So a green `yarn install` proves nothing, and
 tree and validates every peer range directly. That is ground truth, it is
 installer-agnostic, and it reports which package wanted what instead of an
 opaque resolver dump.
+
+**A suppressed peer stays visible.** `peer-exceptions.json` holds unmet peers
+that are known not to break a cell, and every entry must carry the evidence that
+justified it. Suppressed peers are printed on each run rather than hidden, so a
+stale exception cannot rot unnoticed. The first entry is
+`react-native-worklets` -> `@react-native/metro-config`: worklets 0.10.1 added
+that peer without marking it optional, and Expo apps use `@expo/metro-config`
+instead, so it is legitimately absent and SDK 57 bundles green without it.
+
+**A pinned fixture cannot catch a bad peer *range*.** Every fixture pins one
+internally consistent SDK, so an open-ended range like
+`react-native-reanimated >=4.0.0` is satisfied by it and the cell goes green.
+The published `ERESOLVE` bug only appears when a consumer pins an old runtime
+and lets the other peers float to their newest match. That needs a different
+cell shape, not another SDK.
 
 **The lockfile is committed, and the drift run ignores it.**
 `--frozen-lockfile` gives the PR gate a reproducible runtime, which is what you
@@ -84,9 +101,19 @@ nothing about `dist` — `inertia` never loads it on native, and `dist` is exact
 where the alpha.10 worklet crash lived. A separate assertion has to cover the
 built output.
 
+## Results
+
+`@rootnative/inertia@0.0.10`:
+
+| Fixture | check:peers | bundle              |
+| ------- | ----------- | ------------------- |
+| sdk-54  | pass        | pass · 944 modules  |
+| sdk-57  | pass (1 suppressed) | pass · 996 modules |
+
+So 0.0.10 works on both ends of the current SDK range, three majors apart, with
+no source change. Its peer ranges do not lie about SDK 57.
+
 ## Status
 
-Step 1 of 6. The SDK 54 cell installs, passes `check:peers`, and bundles green
-against `@rootnative/inertia@0.0.10` (944 modules). Remaining: the other SDK
-fixtures, the support-policy file, the built-output assertion, and the reusable
-workflow.
+Step 2 of 6. Remaining: a floating-range cell (see the range decision above),
+the support-policy file, the built-output assertion, and the reusable workflow.

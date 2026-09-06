@@ -1,0 +1,9 @@
+{
+  "expo": {
+    "name": "fixture-sdk-57",
+    "slug": "fixture-sdk-57",
+    "version": "1.0.0",
+    "platforms": ["ios", "android"],
+    "newArchEnabled": true
+  }
+}

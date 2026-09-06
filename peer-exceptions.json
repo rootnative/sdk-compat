@@ -1,0 +1,12 @@
+{
+  "comment": "Peers that check-peers.mjs reports but which are known not to break a fixture. Every entry carries the evidence that justified it. An entry with no evidence is a bug, not an exception. Suppressed peers are still printed on every run so they cannot rot unnoticed.",
+  "exceptions": [
+    {
+      "from": "react-native-worklets",
+      "peer": "@react-native/metro-config",
+      "reason": "Over-declared peer. Expo apps use @expo/metro-config, so the bare RN package is legitimately absent.",
+      "evidence": "worklets 0.10.1 added this peer and does not mark it optional; 0.5.2 did not declare it at all. The SDK 57 fixture bundles green without it: 996 modules, inertia present (createMotionComponent x9, __workletHash x134).",
+      "seen": "fixtures/sdk-57"
+    }
+  ]
+}
