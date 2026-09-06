@@ -16,10 +16,12 @@ other — every fixture owns its lockfile and resolves its own runtime.
 
 ## Layout
 
-    fixtures/sdk-54/       Expo 54 · RN 0.81 · Reanimated 4.1 · worklets 0.5
-    fixtures/sdk-57/       Expo 57 · RN 0.86 · Reanimated 4.5 · worklets 0.10
-    scripts/check-peers.mjs
-    peer-exceptions.json
+    fixtures/sdk-54/         Expo 54 · RN 0.81 · Reanimated 4.1 · worklets 0.5
+    fixtures/sdk-57/         Expo 57 · RN 0.86 · Reanimated 4.5 · worklets 0.10
+    scripts/check-peers.mjs  is the installed tree valid?
+    scripts/check-range.mjs  does the declared range promise the impossible?
+    peer-exceptions.json     suppressions, each with its evidence
+    support.json             what the matrix has actually proven
 
 ## Running one cell
 
@@ -60,12 +62,24 @@ stale exception cannot rot unnoticed. The first entry is
 that peer without marking it optional, and Expo apps use `@expo/metro-config`
 instead, so it is legitimately absent and SDK 57 bundles green without it.
 
-**A pinned fixture cannot catch a bad peer *range*.** Every fixture pins one
-internally consistent SDK, so an open-ended range like
-`react-native-reanimated >=4.0.0` is satisfied by it and the cell goes green.
-The published `ERESOLVE` bug only appears when a consumer pins an old runtime
-and lets the other peers float to their newest match. That needs a different
-cell shape, not another SDK.
+**A pinned fixture cannot catch a bad peer *range*, so `check:range` does it
+statically.** Every fixture pins one internally consistent SDK, so an
+open-ended range like `react-native-reanimated >=4.0.0` is satisfied by it and
+the cell goes green. The published `ERESOLVE` bug only appears when a consumer
+pins an old runtime and lets the other peers float to their newest match.
+
+That needs no install to detect. For each peer we declare, take the newest
+version our own range admits, read *its* peers, and compare them against what we
+declare for the same package. Where it is stricter than we are, we over-promise.
+`newestSatisfying` caps at the `latest` dist-tag on purpose: npm carries
+untagged placeholders — `react-native@1000.0.0` is real and satisfies
+`>=0.81.0` — which would otherwise dominate every comparison.
+
+**Two bundle assertions, because one export never touches `dist`.** Metro
+follows the `react-native` export condition, and `inertia` points that at
+`src`. A native bundle therefore compiles 58 files from `src/` and zero from
+`dist/`. The web export takes the `import` condition instead and pulls 12
+`dist/` chunks with zero `src/`. Only both together cover what ships.
 
 **The lockfile is committed, and the drift run ignores it.**
 `--frozen-lockfile` gives the PR gate a reproducible runtime, which is what you
@@ -103,17 +117,30 @@ built output.
 
 ## Results
 
-`@rootnative/inertia@0.0.10`:
+`@rootnative/inertia@0.0.10`, every assertion, real runs:
 
-| Fixture | check:peers | bundle              |
-| ------- | ----------- | ------------------- |
-| sdk-54  | pass        | pass · 944 modules  |
-| sdk-57  | pass (1 suppressed) | pass · 996 modules |
+| Fixture | check:peers         | bundle (src)       | bundle:web (dist)  |
+| ------- | ------------------- | ------------------ | ------------------ |
+| sdk-54  | pass                | pass · 934 modules | pass · 516 modules |
+| sdk-57  | pass · 1 suppressed | pass · 872 modules | pass · 568 modules |
 
-So 0.0.10 works on both ends of the current SDK range, three majors apart, with
-no source change. Its peer ranges do not lie about SDK 57.
+0.0.10 works on both ends of the current SDK range, three majors apart, on both
+resolution paths, with no source change.
+
+`check:range` is the opposite story. The published ranges over-promise:
+
+| Package                          | Over-promises |
+| -------------------------------- | ------------- |
+| `@rootnative/inertia@0.0.10`     | 4             |
+| `@rootnative/components@0.0.0-alpha.14` | 6      |
+| `@rootnative/core@0.0.0-alpha.14`| 3             |
+
+`components` is the worst: it advertises `react >=18.0.0` and
+`react-native >=0.72.0` while depending on `inertia`, whose own floor is
+`react >=19.0.0` and `react-native >=0.81.0`. npm rejects its advertised floor
+with `ERESOLVE`.
 
 ## Status
 
-Step 2 of 6. Remaining: a floating-range cell (see the range decision above),
-the support-policy file, the built-output assertion, and the reusable workflow.
+Step 3 of 6. Remaining: the reusable workflow, wiring `inertia` and `ui` to call
+it, and fixing the ranges this surfaced.

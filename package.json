@@ -4,7 +4,8 @@
   "private": true,
   "license": "MIT",
   "scripts": {
-    "check:peers": "node scripts/check-peers.mjs"
+    "check:peers": "node scripts/check-peers.mjs",
+    "check:range": "node scripts/check-range.mjs"
   },
   "dependencies": {
     "semver": "^7.6.3"

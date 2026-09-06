@@ -1,0 +1,55 @@
+{
+  "comment": "What the matrix has actually proven, not what a peer range claims. runtimes are read from each fixture's installed tree. Update only from a green run. Module counts are deliberately not recorded: they drift between runs with the installed set and Metro cache, so they would be false precision.",
+  "lastVerified": "2026-09-06",
+  "assertions": {
+    "peers": "check-peers.mjs \u2014 every peer in the installed tree is satisfied",
+    "bundle": "expo export --platform android \u2014 the react-native export condition (src, for inertia)",
+    "bundle:web": "expo export --platform web \u2014 the import condition (dist)",
+    "range": "check-range.mjs \u2014 the declared range admits only combinations that exist"
+  },
+  "runtimes": {
+    "sdk-54": {
+      "expo": "54.0.37",
+      "react": "19.1.0",
+      "react-native": "0.81.5",
+      "react-native-reanimated": "4.1.7",
+      "react-native-worklets": "0.5.2"
+    },
+    "sdk-57": {
+      "expo": "57.0.20",
+      "react": "19.2.3",
+      "react-native": "0.86.3",
+      "react-native-reanimated": "4.5.5",
+      "react-native-worklets": "0.10.1"
+    }
+  },
+  "libraries": {
+    "@rootnative/inertia": {
+      "oldestSupported": "sdk-54",
+      "newestSupported": "sdk-57",
+      "verified": {
+        "0.0.10": {
+          "sdk-54": {
+            "peers": "pass",
+            "bundle": "pass",
+            "bundle:web": "pass"
+          },
+          "sdk-57": {
+            "peers": "pass \u00b7 1 suppressed",
+            "bundle": "pass",
+            "bundle:web": "pass"
+          }
+        }
+      },
+      "range": "FAIL \u00b7 4 over-promises"
+    },
+    "@rootnative/components": {
+      "oldestSupported": "unverified \u2014 no fixture run yet",
+      "range": "FAIL \u00b7 6 over-promises. Advertises react >=18.0.0 and react-native >=0.72.0 while depending on inertia, whose floor is react >=19.0.0 and react-native >=0.81.0. npm rejects the advertised floor with ERESOLVE."
+    },
+    "@rootnative/core": {
+      "oldestSupported": "unverified \u2014 no fixture run yet",
+      "range": "FAIL \u00b7 3 over-promises"
+    }
+  }
+}
