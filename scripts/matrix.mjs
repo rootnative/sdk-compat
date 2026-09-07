@@ -20,7 +20,9 @@ const arg = (flag) => {
   return i === -1 ? undefined : process.argv[i + 1]
 }
 
-const fixtures = readdirSync('fixtures', { withFileTypes: true })
+const support = JSON.parse(readFileSync('support.json', 'utf8'))
+
+const allFixtures = readdirSync('fixtures', { withFileTypes: true })
   .filter((e) => e.isDirectory())
   .map((e) => e.name)
   .sort()
@@ -28,9 +30,22 @@ const fixtures = readdirSync('fixtures', { withFileTypes: true })
 const pkg = arg('--package')
 const specs = pkg
   ? [`${pkg}@${arg('--version') || 'latest'}`]
-  : Object.keys(JSON.parse(readFileSync('support.json', 'utf8')).libraries)
+  : Object.keys(support.libraries)
       .map((name) => `${name}@latest`)
       .sort()
+
+// A library declares which cells it supports. Running one it does not claim
+// would paint a documented boundary as a build failure: inertia deliberately
+// dropped SDK 54 when it narrowed to the SDK 57 band, and that is a fact to
+// record, not a regression to chase.
+const claimed = (name) => support.libraries[name]?.fixtures
+const names = specs.map((s) => {
+  const i = s.lastIndexOf('@')
+  return i > 0 ? s.slice(0, i) : s
+})
+const fixtures = names.every((n) => claimed(n))
+  ? [...new Set(names.flatMap((n) => claimed(n)))].sort()
+  : allFixtures
 
 const out = { fixtures: JSON.stringify(fixtures), specs: JSON.stringify(specs) }
 console.log(JSON.stringify(out, null, 2))

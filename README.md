@@ -158,32 +158,44 @@ built output.
 
 ## Results
 
-`@rootnative/inertia@0.0.10`, every assertion, real runs:
+Both libraries pass every assertion on their declared band, built from source
+and packed:
 
-| Fixture | check:peers         | bundle (src)       | bundle:web (dist)  |
-| ------- | ------------------- | ------------------ | ------------------ |
-| sdk-54  | pass                | pass · 934 modules | pass · 516 modules |
-| sdk-57  | pass · 1 suppressed | pass · 872 modules | pass · 568 modules |
+| Package                  | Fixture | range | peers               | bundle | bundle:web |
+| ------------------------ | ------- | ----- | ------------------- | ------ | ---------- |
+| `@rootnative/inertia`    | sdk-57  | pass  | pass · 1 suppressed | pass   | pass       |
+| `@rootnative/components` | sdk-57  | pass  | pass · 1 suppressed | pass   | pass       |
 
-0.0.10 works on both ends of the current SDK range, three majors apart, on both
-resolution paths, with no source change.
+Getting there took two real fixes, both found by this matrix:
 
-`check:range` is the opposite story. The published ranges over-promise:
+**`components` did not bundle at all.** It marked `@expo/vector-icons`,
+`react-native-safe-area-context` and `react-native-svg` optional while importing
+all three statically, so Metro failed on `Unable to resolve module` before the
+declared runtime fallback could apply. The static import is deliberate — a lazy
+`require` does not survive tsup `splitting: true` — so the flags were wrong, not
+the imports.
 
-| Package                          | Over-promises |
-| -------------------------------- | ------------- |
-| `@rootnative/inertia@0.0.10`     | 4             |
-| `@rootnative/components@0.0.0-alpha.14` | 6      |
-| `@rootnative/core@0.0.0-alpha.14`| 3             |
+**Every package over-promised its peer range** (inertia 4, components 6, core
+3). They now declare the SDK 57 band. That is narrower than what they run on,
+and the narrowing is forced: flat peer ranges resolve independently, so any
+range admitting both SDK 54 (RN 0.81 + Reanimated 4.1) and SDK 57 (RN 0.86 +
+Reanimated 4.5) also admits RN 0.81 + Reanimated 4.6, which cannot install.
+Supporting two SDK bands honestly needs two release lines, not one wide range.
 
-`components` is the worst: it advertises `react >=18.0.0` and
-`react-native >=0.72.0` while depending on `inertia`, whose own floor is
-`react >=19.0.0` and `react-native >=0.81.0`. npm rejects its advertised floor
-with `ERESOLVE`.
+The `sdk-54` fixture stays in the repository. It is now a documented boundary:
+running it against these packages reports exactly which four peers fall outside
+the band. `support.json` lists the cells each library claims, and CI runs only
+those.
 
 ## Status
 
-Step 4 of 6. Remaining: wiring `inertia` and `ui` to call the workflow, and
-fixing the ranges it surfaced. The workflow has not run on GitHub yet — every
-command in it is verified locally, but the orchestration is unproven until the
-first push.
+Step 6 of 6 — the matrix is complete and both libraries are green through it.
+
+Two things remain unproven or undone, on purpose:
+
+- **The workflow has never run on GitHub.** Every command is verified locally
+  and the YAML parses with all actions pinned, but matrix expansion and artifact
+  passing only exercise after the first push.
+- **Both repos still develop against SDK 54** (RN 0.81.5) while declaring the
+  SDK 57 band. Tests and typecheck pass, but the dev pins now disagree with the
+  published contract, so they should move to the SDK 57 stack.

@@ -1,6 +1,6 @@
 {
-  "comment": "What the matrix has actually proven, not what a peer range claims. runtimes are read from each fixture's installed tree. Update only from a green run. Module counts are deliberately not recorded: they drift between runs with the installed set and Metro cache, so they would be false precision.",
-  "lastVerified": "2026-09-06",
+  "comment": "What the matrix has actually proven, not what a peer range claims. runtimes are read from each fixture's installed tree. `fixtures` is the set of cells a library claims to support: CI runs exactly those, so an unsupported SDK is a documented boundary rather than a red build. Update only from a green run.",
+  "lastVerified": "2026-09-07",
   "assertions": {
     "peers": "check-peers.mjs \u2014 every peer in the installed tree is satisfied",
     "bundle": "expo export --platform android \u2014 the react-native export condition (src, for inertia)",
@@ -25,14 +25,14 @@
   },
   "libraries": {
     "@rootnative/inertia": {
-      "oldestSupported": "sdk-54",
+      "oldestSupported": "sdk-57",
       "newestSupported": "sdk-57",
       "verified": {
         "0.0.10": {
           "sdk-54": {
-            "peers": "pass",
-            "bundle": "pass",
-            "bundle:web": "pass"
+            "peers": "fail \u2014 out of the declared band, by design",
+            "bundle": "n/a",
+            "bundle:web": "n/a"
           },
           "sdk-57": {
             "peers": "pass \u00b7 1 suppressed",
@@ -41,24 +41,45 @@
           }
         }
       },
-      "range": "FAIL \u00b7 4 over-promises"
+      "range": "OK \u2014 internally consistent as of the SDK 57 band",
+      "fixtures": [
+        "sdk-57"
+      ],
+      "note": "Declares the SDK 57 band only. Flat peer ranges resolve independently, so any range admitting both SDK 54 (RN 0.81 + Reanimated 4.1) and SDK 57 (RN 0.86 + Reanimated 4.5) also admits RN 0.81 + Reanimated 4.6, which cannot install. Consumers on SDK 54 stay on the currently published version. Adding sdk-55 and sdk-56 fixtures would show whether the band can widen."
     },
     "@rootnative/components": {
-      "oldestSupported": "BLOCKED \u2014 does not bundle on any fixture",
-      "range": "FAIL \u00b7 6 over-promises. Advertises react >=18.0.0 and react-native >=0.72.0 while depending on inertia, whose floor is react >=19.0.0 and react-native >=0.81.0. npm rejects the advertised floor with ERESOLVE.",
+      "oldestSupported": "sdk-57",
+      "range": "OK \u2014 internally consistent as of the SDK 57 band",
       "findings": [
         {
           "id": "optional-peers-are-static-imports",
           "severity": "blocking",
           "detail": "peerDependenciesMeta marks @expo/vector-icons, react-native-reanimated, react-native-safe-area-context and react-native-worklets optional, but dist imports two of them statically. Metro cannot resolve a static import of an absent module, so the bundle fails before the runtime fallback can apply. src/safe-area.tsx writes `SafeAreaViewImpl ?? View`, which never runs.",
           "evidence": "sdk-57, components@0.0.0-alpha.14: \"Unable to resolve module react-native-safe-area-context from dist/chunk-2BK2XBFP.js\". Installing it moves the failure to \"@expo/vector-icons/MaterialCommunityIcons\" from dist/chunk-ECRRYYE3.js.",
-          "fix": "Either drop the optional flag and require these peers, or load them through a guarded dynamic require so the declared fallback can work."
+          "fix": "Dropped the optional flag from @expo/vector-icons and react-native-safe-area-context. The static import is deliberate \u2014 a lazy require does not survive tsup `splitting: true`, which is documented in src/safe-area.tsx \u2014 so the peers are required, not optional.",
+          "status": "FIXED, unreleased"
         }
-      ]
+      ],
+      "fixtures": [
+        "sdk-57"
+      ],
+      "newestSupported": "sdk-57",
+      "verified": {
+        "0.0.0-alpha.14+unreleased": {
+          "sdk-57": {
+            "peers": "pass \u00b7 1 suppressed",
+            "bundle": "pass",
+            "bundle:web": "pass"
+          }
+        }
+      }
     },
     "@rootnative/core": {
-      "oldestSupported": "unverified \u2014 no fixture run yet",
-      "range": "FAIL \u00b7 3 over-promises"
+      "oldestSupported": "sdk-57",
+      "range": "OK \u2014 internally consistent as of the SDK 57 band",
+      "fixtures": [
+        "sdk-57"
+      ]
     }
   }
 }
