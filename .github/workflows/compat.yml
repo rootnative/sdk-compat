@@ -82,13 +82,27 @@ jobs:
       fixtures: ${{ steps.matrix.outputs.fixtures }}
       specs: ${{ steps.matrix.outputs.specs }}
     steps:
-      - name: Checkout
+      # `workflow_call` makes `actions/checkout` default to the CALLER's
+      # repository, not this one. A caller (inertia, ui) therefore got its own
+      # tree here: no `scripts/`, no `fixtures/`, and a pnpm lockfile that made
+      # setup-node auto-detect pnpm and fail before any step ran. Name the
+      # repository. `job_workflow_sha` is this workflow file's own commit, so
+      # the scripts always match the workflow; it is empty outside
+      # `workflow_call`, where checkout then takes the default branch.
+      - name: Checkout sdk-compat
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          repository: rootnative/sdk-compat
+          ref: ${{ github.job_workflow_sha }}
 
       - name: Setup Node.js
         uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version-file: .nvmrc
+          # This job runs no install, so there is nothing to cache. Say so:
+          # setup-node v5 otherwise infers the package manager from whatever
+          # lockfile it finds and then requires that binary on PATH.
+          package-manager-cache: false
 
       # Fixtures come from the directory listing, so adding an SDK needs no
       # workflow edit. With no caller naming a package (the scheduled run),
@@ -116,8 +130,11 @@ jobs:
       matrix:
         spec: ${{ fromJSON(needs.prepare.outputs.specs) }}
     steps:
-      - name: Checkout
+      - name: Checkout sdk-compat
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          repository: rootnative/sdk-compat
+          ref: ${{ github.job_workflow_sha }}
 
       - name: Setup Node.js
         uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
@@ -160,8 +177,11 @@ jobs:
         fixture: ${{ fromJSON(needs.prepare.outputs.fixtures) }}
         spec: ${{ fromJSON(needs.prepare.outputs.specs) }}
     steps:
-      - name: Checkout
+      - name: Checkout sdk-compat
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          repository: rootnative/sdk-compat
+          ref: ${{ github.job_workflow_sha }}
 
       - name: Setup Node.js
         uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
