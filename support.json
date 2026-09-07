@@ -2,10 +2,10 @@
   "comment": "What the matrix has actually proven, not what a peer range claims. runtimes are read from each fixture's installed tree. `fixtures` is the set of cells a library claims to support: CI runs exactly those, so an unsupported SDK is a documented boundary rather than a red build. Update only from a green run.",
   "lastVerified": "2026-09-07",
   "assertions": {
-    "peers": "check-peers.mjs \u2014 every peer in the installed tree is satisfied",
-    "bundle": "expo export --platform android \u2014 the react-native export condition (src, for inertia)",
-    "bundle:web": "expo export --platform web \u2014 the import condition (dist)",
-    "range": "check-range.mjs \u2014 the declared range admits only combinations that exist"
+    "peers": "check-peers.mjs — every peer in the installed tree is satisfied",
+    "bundle": "expo export --platform android — the react-native export condition (src, for inertia)",
+    "bundle:web": "expo export --platform web — the import condition (dist)",
+    "range": "check-range.mjs — the declared range admits only combinations that exist"
   },
   "runtimes": {
     "sdk-54": {
@@ -30,18 +30,18 @@
       "verified": {
         "0.0.10": {
           "sdk-54": {
-            "peers": "fail \u2014 out of the declared band, by design",
+            "peers": "fail — out of the declared band, by design",
             "bundle": "n/a",
             "bundle:web": "n/a"
           },
           "sdk-57": {
-            "peers": "pass \u00b7 1 suppressed",
+            "peers": "pass · 1 suppressed",
             "bundle": "pass",
             "bundle:web": "pass"
           }
         }
       },
-      "range": "OK \u2014 internally consistent as of the SDK 57 band",
+      "range": "OK — internally consistent as of the SDK 57 band",
       "fixtures": [
         "sdk-57"
       ],
@@ -49,14 +49,14 @@
     },
     "@rootnative/components": {
       "oldestSupported": "sdk-57",
-      "range": "OK \u2014 internally consistent as of the SDK 57 band",
+      "range": "OK — internally consistent as of the SDK 57 band",
       "findings": [
         {
           "id": "optional-peers-are-static-imports",
           "severity": "blocking",
           "detail": "peerDependenciesMeta marks @expo/vector-icons, react-native-reanimated, react-native-safe-area-context and react-native-worklets optional, but dist imports two of them statically. Metro cannot resolve a static import of an absent module, so the bundle fails before the runtime fallback can apply. src/safe-area.tsx writes `SafeAreaViewImpl ?? View`, which never runs.",
           "evidence": "sdk-57, components@0.0.0-alpha.14: \"Unable to resolve module react-native-safe-area-context from dist/chunk-2BK2XBFP.js\". Installing it moves the failure to \"@expo/vector-icons/MaterialCommunityIcons\" from dist/chunk-ECRRYYE3.js.",
-          "fix": "Dropped the optional flag from @expo/vector-icons and react-native-safe-area-context. The static import is deliberate \u2014 a lazy require does not survive tsup `splitting: true`, which is documented in src/safe-area.tsx \u2014 so the peers are required, not optional.",
+          "fix": "Dropped the optional flag from @expo/vector-icons and react-native-safe-area-context. The static import is deliberate — a lazy require does not survive tsup `splitting: true`, which is documented in src/safe-area.tsx — so the peers are required, not optional.",
           "status": "FIXED, unreleased"
         }
       ],
@@ -67,7 +67,7 @@
       "verified": {
         "0.0.0-alpha.14+unreleased": {
           "sdk-57": {
-            "peers": "pass \u00b7 1 suppressed",
+            "peers": "pass · 1 suppressed",
             "bundle": "pass",
             "bundle:web": "pass"
           }
@@ -76,7 +76,7 @@
     },
     "@rootnative/core": {
       "oldestSupported": "sdk-57",
-      "range": "OK \u2014 internally consistent as of the SDK 57 band",
+      "range": "OK — internally consistent as of the SDK 57 band",
       "fixtures": [
         "sdk-57"
       ]
