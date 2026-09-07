@@ -24,6 +24,9 @@
  */
 
 import { execFileSync } from 'node:child_process'
+import { existsSync, mkdtempSync, readFileSync, statSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import semver from 'semver'
 
 const specs = process.argv.slice(2)
@@ -44,7 +47,31 @@ const npm = (args) => {
   }
 }
 
-const peersOf = (spec) => npm(['view', spec, 'peerDependencies']) ?? {}
+/**
+ * A pre-release gate has nothing published to query, so a spec may also be a
+ * local `.tgz` from `npm pack` or an unpacked package directory. Peers then
+ * come from the manifest on disk. Only the package under audit can be local;
+ * its peers are always resolved from the registry.
+ */
+const isLocal = (spec) =>
+  (spec.endsWith('.tgz') || spec.startsWith('.') || spec.startsWith('/')) &&
+  existsSync(spec)
+
+const localManifest = (spec) => {
+  if (statSync(spec).isDirectory()) {
+    return JSON.parse(readFileSync(join(spec, 'package.json'), 'utf8'))
+  }
+  const dir = mkdtempSync(join(tmpdir(), 'compat-'))
+  execFileSync('tar', ['-xzf', spec, '-C', dir, 'package/package.json'], {
+    stdio: 'ignore',
+  })
+  return JSON.parse(readFileSync(join(dir, 'package', 'package.json'), 'utf8'))
+}
+
+const peersOf = (spec) =>
+  (isLocal(spec)
+    ? localManifest(spec).peerDependencies
+    : npm(['view', spec, 'peerDependencies'])) ?? {}
 
 /**
  * Newest version of `name` that `range` admits.
@@ -66,7 +93,10 @@ let failed = false
 
 for (const spec of specs) {
   const declared = peersOf(spec)
-  console.log(`\n${spec}`)
+  const label = isLocal(spec)
+    ? `${localManifest(spec).name}@${localManifest(spec).version}`
+    : spec
+  console.log(`\n${label}${isLocal(spec) ? `  (local: ${spec})` : ''}`)
 
   if (Object.keys(declared).length === 0) {
     console.log('  no peerDependencies')
@@ -110,7 +140,7 @@ for (const spec of specs) {
       `\n    ${p.sub} "${p.ours}" advertises ${p.sub} ${p.floor} as supported.\n` +
         `    But ${p.dep} "${p.depRange}" admits ${p.dep}@${p.newest}, which requires\n` +
         `    ${p.sub} "${p.subRange}" — excluding ${p.floor}.\n` +
-        `    A consumer on ${p.sub} ${p.floor} cannot install ${spec}.`,
+        `    A consumer on ${p.sub} ${p.floor} cannot install ${label}.`,
     )
   }
 }

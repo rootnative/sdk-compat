@@ -1,0 +1,224 @@
+name: Compat Matrix
+
+# Answers which Expo SDK versions a @rootnative/* build actually works on.
+#
+# Three ways in, and the middle one is the reason this repository exists:
+#
+#   workflow_call     — inertia and ui call this from their own CI, so the
+#                       matrix is implemented once instead of twice. A caller
+#                       that uploads a `npm pack` tarball as an artifact gets a
+#                       gate that runs BEFORE publishing.
+#   schedule          — the important one. Nothing in our repositories changes,
+#                       yet the answer does: Reanimated narrowed its own peer
+#                       range and silently invalidated ours. A frozen lockfile
+#                       can never see that, so this run resolves fresh.
+#   workflow_dispatch — manual, for checking one package by hand.
+on:
+  workflow_call:
+    inputs:
+      package:
+        description: "Package to test, e.g. @rootnative/inertia"
+        required: true
+        type: string
+      version:
+        description: "npm version or dist-tag. Ignored when tarball-artifact is set."
+        required: false
+        type: string
+        default: latest
+      tarball-artifact:
+        description: >-
+          Name of an artifact from the SAME workflow run holding a `npm pack`
+          .tgz. Set this to gate a release candidate that is not published yet.
+        required: false
+        type: string
+        default: ""
+      fresh:
+        description: "Ignore fixture lockfiles and resolve newest matching versions."
+        required: false
+        type: boolean
+        default: false
+  workflow_dispatch:
+    inputs:
+      package:
+        description: "Package to test, e.g. @rootnative/inertia"
+        required: true
+        type: string
+      version:
+        description: "npm version or dist-tag"
+        required: false
+        type: string
+        default: latest
+      fresh:
+        description: "Ignore fixture lockfiles"
+        required: false
+        type: boolean
+        default: false
+  schedule:
+    # Mondays 06:00 UTC. Weekly is enough: this watches the ecosystem, which
+    # moves on release cadences, not on our commits.
+    - cron: "0 6 * * 1"
+
+# The token only needs to read the repository.
+permissions:
+  contents: read
+
+concurrency:
+  group: compat-${{ github.ref }}-${{ inputs.package || 'scheduled' }}
+  cancel-in-progress: true
+
+jobs:
+  prepare:
+    name: Build matrix
+    runs-on: ubuntu-latest
+    outputs:
+      fixtures: ${{ steps.matrix.outputs.fixtures }}
+      specs: ${{ steps.matrix.outputs.specs }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version-file: .nvmrc
+
+      # Fixtures come from the directory listing, so adding an SDK needs no
+      # workflow edit. With no caller naming a package (the scheduled run),
+      # specs fall back to every library in support.json at `latest`.
+      - name: Compute matrix
+        id: matrix
+        run: |
+          if [ -n "${{ inputs.package }}" ]; then
+            node scripts/matrix.mjs \
+              --package '${{ inputs.package }}' \
+              --version '${{ inputs.version }}'
+          else
+            node scripts/matrix.mjs
+          fi
+
+  range:
+    name: range · ${{ matrix.spec }}
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        spec: ${{ fromJSON(needs.prepare.outputs.specs) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: yarn
+
+      - name: Install tooling
+        run: yarn install --frozen-lockfile
+
+      - name: Download candidate tarball
+        if: inputs.tarball-artifact != ''
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: ${{ inputs.tarball-artifact }}
+          path: candidate
+
+      # A declared range can over-promise without any fixture failing, because
+      # every fixture pins one internally consistent SDK. This is the check that
+      # catches it, and it needs no install.
+      - name: Audit declared range
+        run: |
+          if [ -n "${{ inputs.tarball-artifact }}" ]; then
+            TGZ="$(ls "$GITHUB_WORKSPACE"/candidate/*.tgz | head -1)"
+            echo "auditing local candidate: $TGZ"
+            node scripts/check-range.mjs "$TGZ"
+          else
+            node scripts/check-range.mjs '${{ matrix.spec }}'
+          fi
+
+  cell:
+    name: ${{ matrix.fixture }} · ${{ matrix.spec }}
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      # One red cell must not hide the others — the shape of the failure across
+      # SDKs is the actual result.
+      fail-fast: false
+      matrix:
+        fixture: ${{ fromJSON(needs.prepare.outputs.fixtures) }}
+        spec: ${{ fromJSON(needs.prepare.outputs.specs) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: yarn
+
+      - name: Install tooling
+        run: yarn install --frozen-lockfile
+
+      - name: Download candidate tarball
+        if: inputs.tarball-artifact != ''
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: ${{ inputs.tarball-artifact }}
+          path: candidate
+
+      # Drift mode. A committed lockfile makes the PR gate reproducible, which
+      # is what you want when testing your own change, but it also freezes the
+      # ecosystem — and upstream moving is the failure this repository exists to
+      # catch. The scheduled run therefore throws the lockfile away.
+      - name: Unpin fixture (drift run)
+        if: inputs.fresh || github.event_name == 'schedule'
+        run: rm -f fixtures/${{ matrix.fixture }}/yarn.lock
+
+      - name: Install SDK runtime
+        working-directory: fixtures/${{ matrix.fixture }}
+        run: |
+          if [ -f yarn.lock ]; then
+            yarn install --frozen-lockfile
+          else
+            yarn install
+          fi
+
+      # The fixture pins the SDK runtime only. The candidate goes on top, so one
+      # fixture serves every library and every version.
+      - name: Install candidate
+        working-directory: fixtures/${{ matrix.fixture }}
+        run: |
+          if [ -n "${{ inputs.tarball-artifact }}" ]; then
+            TGZ="$(ls "$GITHUB_WORKSPACE"/candidate/*.tgz | head -1)"
+            echo "installing local candidate: $TGZ"
+            yarn add "file:$TGZ"
+          else
+            yarn add '${{ matrix.spec }}'
+          fi
+
+      # Assertion 1. Yarn classic reports peer conflicts as warnings and exits
+      # 0 — it installs Reanimated 4.6.0 against react-native 0.81.5 without
+      # complaint — so the installer's exit code proves nothing. This reads the
+      # installed tree instead.
+      - name: Assert peers
+        run: node scripts/check-peers.mjs fixtures/${{ matrix.fixture }}
+
+      # Assertion 2. Metro follows the `react-native` export condition, which
+      # inertia points at src/.
+      - name: Bundle native
+        working-directory: fixtures/${{ matrix.fixture }}
+        run: yarn bundle
+
+      # Assertion 3. The web export takes the `import` condition instead and is
+      # the only one that loads dist/ — where the alpha.10 worklet crash lived.
+      - name: Bundle web
+        working-directory: fixtures/${{ matrix.fixture }}
+        run: yarn bundle:web
+
+      - name: Summarise
+        if: always()
+        run: |
+          echo "| ${{ matrix.fixture }} | ${{ matrix.spec }} | ${{ job.status }} |" \
+            >> "$GITHUB_STEP_SUMMARY"

@@ -16,10 +16,13 @@ other — every fixture owns its lockfile and resolves its own runtime.
 
 ## Layout
 
+    .github/workflows/compat.yml
     fixtures/sdk-54/         Expo 54 · RN 0.81 · Reanimated 4.1 · worklets 0.5
     fixtures/sdk-57/         Expo 57 · RN 0.86 · Reanimated 4.5 · worklets 0.10
     scripts/check-peers.mjs  is the installed tree valid?
     scripts/check-range.mjs  does the declared range promise the impossible?
+    scripts/matrix.mjs       fixtures x specs, for CI
+    scripts/run-cell.sh      run one cell locally, same order as CI
     peer-exceptions.json     suppressions, each with its evidence
     support.json             what the matrix has actually proven
 
@@ -37,6 +40,44 @@ never a fixture dependency — the runner installs it on top, so one fixture
 serves every library and every candidate version. `yarn add` writes the
 candidate into `package.json` and `yarn.lock`; that is fine in an ephemeral CI
 checkout, but those two files must stay runtime-only in git.
+
+## CI
+
+`compat.yml` is a reusable workflow with three ways in.
+
+**`workflow_call`** — `inertia` and `ui` call it from their own CI, so the
+matrix is implemented once. Passing `tarball-artifact` makes it a gate that runs
+*before* publishing:
+
+```yaml
+jobs:
+  pack:
+    runs-on: ubuntu-latest
+    steps:
+      # ... build, then `npm pack` into ./pack
+      - uses: actions/upload-artifact@<sha>
+        with:
+          name: candidate
+          path: pack/*.tgz
+
+  compat:
+    needs: pack
+    uses: rootnative/sdk-compat/.github/workflows/compat.yml@main
+    with:
+      package: "@rootnative/inertia"
+      tarball-artifact: candidate
+```
+
+**`schedule`** — Mondays 06:00 UTC, and the reason this repository exists.
+Nothing in our repositories changes, yet the answer does. It resolves fresh,
+with fixture lockfiles deleted, across every library in `support.json`.
+
+**`workflow_dispatch`** — one package, by hand.
+
+Jobs: `prepare` builds the matrix from the `fixtures/` listing, so adding an SDK
+needs no workflow edit; `range` audits the declared range once per package;
+`cell` runs the three tree assertions per fixture, with `fail-fast: false`
+because the shape of the failure across SDKs is the result.
 
 ## Decisions
 
@@ -142,5 +183,7 @@ with `ERESOLVE`.
 
 ## Status
 
-Step 3 of 6. Remaining: the reusable workflow, wiring `inertia` and `ui` to call
-it, and fixing the ranges this surfaced.
+Step 4 of 6. Remaining: wiring `inertia` and `ui` to call the workflow, and
+fixing the ranges it surfaced. The workflow has not run on GitHub yet — every
+command in it is verified locally, but the orchestration is unproven until the
+first push.
