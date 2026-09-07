@@ -1,28 +1,27 @@
 import { StyleSheet, Text, View } from 'react-native'
-import { Motion } from '@rootnative/inertia'
+import { candidateExports, candidateName } from './candidate'
 
 /**
- * Smallest app that exercises the library on the path a consumer uses.
+ * Smallest app that exercises the package under test on the path a consumer
+ * uses.
  *
- * Metro resolves `@rootnative/inertia` through its `react-native` export
- * condition, which points at TypeScript source. Bundling this file therefore
- * compiles the library itself, runs the worklets babel plugin over it, and
- * fails when either is broken for this SDK.
+ * The import goes through `./candidate`, which scripts/set-candidate.mjs
+ * rewrites per run. Metro bundles only what the entry graph reaches, so a
+ * fixture hard-coded to one library would pass vacuously for every other one.
+ *
+ * Each package resolves by its own export conditions: inertia's `react-native`
+ * condition points at TypeScript source, components' points at built `dist`.
+ * Bundling this file compiles whichever one is installed and runs the worklets
+ * babel plugin over it.
  */
 export default function App() {
   return (
     <View style={styles.root}>
-      <Motion.View
-        initial={{ opacity: 0, translateY: 20 }}
-        animate={{ opacity: 1, translateY: 0 }}
-        transition={{
-          opacity: { type: 'timing', duration: 200 },
-          translateY: { type: 'spring', tension: 180, friction: 12 },
-        }}
-        style={styles.box}
-      >
+      <View style={styles.box}>
         <Text style={styles.label}>sdk-54</Text>
-      </Motion.View>
+        <Text style={styles.label}>{candidateName}</Text>
+        <Text style={styles.label}>{candidateExports.length} exports</Text>
+      </View>
     </View>
   )
 }

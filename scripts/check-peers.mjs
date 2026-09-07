@@ -24,7 +24,10 @@ import semver from 'semver'
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
-const fixtureDir = resolve(process.argv[2] ?? '.')
+const asJson = process.argv.includes('--json')
+const fixtureDir = resolve(
+  process.argv.slice(2).find((a) => !a.startsWith('--')) ?? '.',
+)
 const rootModules = join(fixtureDir, 'node_modules')
 
 if (!existsSync(rootModules)) {
@@ -107,6 +110,12 @@ for (const dir of installedDirs()) {
       ;(isException(pkg.name, dep) ? suppressed : violations).push(record)
     }
   }
+}
+
+if (asJson) {
+  // Consumed by install-peers.mjs, which needs the missing set, not prose.
+  console.log(JSON.stringify({ violations, suppressed }, null, 2))
+  process.exit(violations.length ? 1 : 0)
 }
 
 const reportSuppressed = () => {

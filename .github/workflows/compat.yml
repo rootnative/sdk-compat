@@ -37,6 +37,14 @@ on:
         required: false
         type: boolean
         default: false
+      enforce-range:
+        description: >-
+          Fail the caller when the declared peer range over-promises. Set false
+          to report without blocking, which is how a repository adopts the check
+          before its published ranges are fixed. Flip it to true once they are.
+        required: false
+        type: boolean
+        default: true
   workflow_dispatch:
     inputs:
       package:
@@ -100,6 +108,9 @@ jobs:
     name: range · ${{ matrix.spec }}
     needs: prepare
     runs-on: ubuntu-latest
+    # Reported but not blocking while a repository still has ranges to fix.
+    # The findings stay visible in the log either way.
+    continue-on-error: ${{ inputs.enforce-range == false }}
     strategy:
       fail-fast: false
       matrix:
@@ -197,6 +208,19 @@ jobs:
           else
             yarn add '${{ matrix.spec }}'
           fi
+
+      # yarn classic does not install peers, npm 7+ does. Without this a
+      # components cell fails on peers that any real consumer would have.
+      - name: Install candidate peers
+        run: node scripts/install-peers.mjs '${{ matrix.fixture }}'
+
+      # Metro bundles only what the entry graph reaches, so the fixture entry
+      # has to import the package under test. Without this the bundle steps
+      # would pass without ever compiling the candidate.
+      - name: Point fixture entry at the candidate
+        run: |
+          PKG="$(node -pe 'const s=process.argv[1]; const i=s.lastIndexOf("@"); i>0?s.slice(0,i):s' '${{ matrix.spec }}')"
+          node scripts/set-candidate.mjs '${{ matrix.fixture }}' "$PKG"
 
       # Assertion 1. Yarn classic reports peer conflicts as warnings and exits
       # 0 — it installs Reanimated 4.6.0 against react-native 0.81.5 without

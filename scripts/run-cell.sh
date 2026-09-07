@@ -18,14 +18,23 @@ DIR="$ROOT/fixtures/$FIXTURE"
 
 cleanup() {
   git -C "$ROOT" checkout -- "fixtures/$FIXTURE/package.json" \
-    "fixtures/$FIXTURE/yarn.lock" 2>/dev/null || true
+    "fixtures/$FIXTURE/yarn.lock" "fixtures/$FIXTURE/candidate.ts" 2>/dev/null || true
   rm -rf "$DIR/dist" "$DIR/dist-web"
 }
 trap cleanup EXIT
 
 case "$SPEC" in
-  *.tgz) TARGET="file:$(cd "$(dirname "$SPEC")" && pwd)/$(basename "$SPEC")" ;;
-  *)     TARGET="$SPEC" ;;
+  *.tgz)
+    TARGET="file:$(cd "$(dirname "$SPEC")" && pwd)/$(basename "$SPEC")"
+    PKG="$(tar -xzOf "$SPEC" package/package.json | node -pe 'JSON.parse(require("fs").readFileSync(0,"utf8")).name')"
+    ;;
+  *)
+    TARGET="$SPEC"
+    # Strip the version, keeping the scope: @scope/name@1.2.3 -> @scope/name.
+    # node rather than sed: BSD and GNU sed disagree on branch syntax, and this
+    # script has to run on a macOS laptop as well as an ubuntu runner.
+    PKG="$(node -pe 'const s=process.argv[1]; const i=s.lastIndexOf("@"); i>0?s.slice(0,i):s' "$SPEC")"
+    ;;
 esac
 
 # In CI, `range` and `cell` are separate jobs with fail-fast disabled, so a
@@ -41,14 +50,35 @@ echo "==> install runtime"
 echo "==> install candidate: $TARGET"
 (cd "$DIR" && yarn add "$TARGET" >/dev/null)
 
+# yarn classic does not install peers; a real consumer has them.
+echo "==> install candidate peers"
+node "$ROOT/scripts/install-peers.mjs" "$FIXTURE"
+
+echo "==> point the fixture entry at $PKG"
+node "$ROOT/scripts/set-candidate.mjs" "$FIXTURE" "$PKG"
+
 echo "==> peers"
 node "$ROOT/scripts/check-peers.mjs" "fixtures/$FIXTURE"
 
-echo "==> bundle native (src path)"
-(cd "$DIR" && yarn bundle 2>&1 | grep -E "Bundled|error")
+bundle() {
+  local script="$1" label="$2" log
+  log="$(mktemp)"
+  echo "==> $label"
+  if (cd "$DIR" && yarn "$script") >"$log" 2>&1; then
+    grep -E "Bundled" "$log" || true
+  else
+    # Metro reports a failed resolution over many lines. An earlier version
+    # piped this through grep and printed nothing at all when it failed.
+    echo "--- $label FAILED ---"
+    grep -vE "^warning|^\$ |^yarn run|^error Command failed" "$log" | tail -25
+    rm -f "$log"
+    return 1
+  fi
+  rm -f "$log"
+}
 
-echo "==> bundle web (dist path)"
-(cd "$DIR" && yarn bundle:web 2>&1 | grep -E "Bundled|error")
+bundle bundle "bundle native (src path)"
+bundle bundle:web "bundle web (dist path)"
 
 if [ "$STATUS" -ne 0 ]; then
   echo "==> tree assertions passed, but the declared range over-promises"

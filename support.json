@@ -44,8 +44,17 @@
       "range": "FAIL \u00b7 4 over-promises"
     },
     "@rootnative/components": {
-      "oldestSupported": "unverified \u2014 no fixture run yet",
-      "range": "FAIL \u00b7 6 over-promises. Advertises react >=18.0.0 and react-native >=0.72.0 while depending on inertia, whose floor is react >=19.0.0 and react-native >=0.81.0. npm rejects the advertised floor with ERESOLVE."
+      "oldestSupported": "BLOCKED \u2014 does not bundle on any fixture",
+      "range": "FAIL \u00b7 6 over-promises. Advertises react >=18.0.0 and react-native >=0.72.0 while depending on inertia, whose floor is react >=19.0.0 and react-native >=0.81.0. npm rejects the advertised floor with ERESOLVE.",
+      "findings": [
+        {
+          "id": "optional-peers-are-static-imports",
+          "severity": "blocking",
+          "detail": "peerDependenciesMeta marks @expo/vector-icons, react-native-reanimated, react-native-safe-area-context and react-native-worklets optional, but dist imports two of them statically. Metro cannot resolve a static import of an absent module, so the bundle fails before the runtime fallback can apply. src/safe-area.tsx writes `SafeAreaViewImpl ?? View`, which never runs.",
+          "evidence": "sdk-57, components@0.0.0-alpha.14: \"Unable to resolve module react-native-safe-area-context from dist/chunk-2BK2XBFP.js\". Installing it moves the failure to \"@expo/vector-icons/MaterialCommunityIcons\" from dist/chunk-ECRRYYE3.js.",
+          "fix": "Either drop the optional flag and require these peers, or load them through a guarded dynamic require so the declared fallback can work."
+        }
+      ]
     },
     "@rootnative/core": {
       "oldestSupported": "unverified \u2014 no fixture run yet",
