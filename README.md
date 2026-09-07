@@ -74,10 +74,17 @@ with fixture lockfiles deleted, across every library in `support.json`.
 
 **`workflow_dispatch`** — one package, by hand.
 
-Jobs: `prepare` builds the matrix from the `fixtures/` listing, so adding an SDK
-needs no workflow edit; `range` audits the declared range once per package;
-`cell` runs the three tree assertions per fixture, with `fail-fast: false`
-because the shape of the failure across SDKs is the result.
+Jobs: `prepare` builds the matrix from the cells each library claims in
+`support.json`, so adding an SDK needs no workflow edit — add the directory and
+claim it. `range` audits the declared range once per package; `cell` runs the
+three tree assertions per fixture, with `fail-fast: false` because the shape of
+the failure across SDKs is the result.
+
+A library that claims no `fixtures` is an error, not a fallback to every
+directory on disk. The fallback used to re-run an SDK a library had dropped and
+report that documented boundary as a red build — the opposite of what the
+`fixtures` list is for. Claiming a fixture that has no directory is an error
+too, because it would silently shrink the matrix and read as a pass.
 
 ## Decisions
 
