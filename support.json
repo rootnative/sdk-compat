@@ -28,7 +28,13 @@
       "oldestSupported": "sdk-57",
       "newestSupported": "sdk-57",
       "verified": {
-        "0.0.10": {
+        "0.0.11": {
+          "comment": "Published 2026-09-09 (npm dist-tag latest, tag core+gestures+gradients+svg@0.0.11). The peers/bundle cells below come from the packed candidate at inertia 279993c, whose package.json still read 0.0.10 because the release workflow is what bumps the version. The published tarball differs from that candidate only in the version field and the sibling @rootnative/inertia floors, so no compat run has installed the published artifact itself yet — the weekly drift run, which resolves every library at latest with the fixture lockfiles deleted, is what confirms it.",
+          "range": "OK — re-audited against the published 0.0.11 on 2026-09-09 with check:range, not against the candidate: react >=19.2.3 <20.0.0, react-native >=0.83.0 <0.87.0, react-native-reanimated >=4.5.0 <4.6.0, react-native-worklets >=0.10.0 <0.11.0 are internally consistent. This is the assertion 0.0.10 failed.",
+          "rangeVerifiedOn": "2026-09-09",
+          "cellsFrom": "279993c (candidate, pre-bump)",
+          "candidateRunOn": "2026-09-08",
+          "candidateRun": "https://github.com/rootnative/inertia/actions/runs/34273666636",
           "sdk-54": {
             "peers": "fail — out of the declared band, by design",
             "bundle": "n/a",
@@ -39,13 +45,25 @@
             "bundle": "pass",
             "bundle:web": "pass"
           }
+        },
+        "0.0.10": {
+          "comment": "Published 2026-09-06 and never matrix-tested as published: the compat gate landed after the release. Declares react-native >=0.81.0 and react-native-reanimated >=4.0.0.",
+          "range": "FAIL — admits combinations that cannot install. The newest Reanimated the range accepts requires react-native 0.83 - 0.87, so a fresh install can fail with ERESOLVE. Nothing in inertia changed to cause this; Reanimated narrowed its own range after the release. This is the failure the gate now catches before a publish instead of after.",
+          "sdk-54": {
+            "peers": "not run",
+            "bundle": "not run",
+            "bundle:web": "not run"
+          },
+          "sdk-57": {
+            "peers": "not run",
+            "bundle": "not run",
+            "bundle:web": "not run"
+          }
         }
       },
-      "range": "OK — internally consistent as of the SDK 57 band",
-      "fixtures": [
-        "sdk-57"
-      ],
-      "note": "Declares the SDK 57 band only. Flat peer ranges resolve independently, so any range admitting both SDK 54 (RN 0.81 + Reanimated 4.1) and SDK 57 (RN 0.86 + Reanimated 4.5) also admits RN 0.81 + Reanimated 4.6, which cannot install. Consumers on SDK 54 stay on the currently published version. Adding sdk-55 and sdk-56 fixtures would show whether the band can widen."
+      "range": "OK for 0.0.11 as published — verified 2026-09-09. NOT OK for 0.0.10, whose ranges predate the narrowing; see the verified entry for it.",
+      "fixtures": ["sdk-57"],
+      "note": "Declares the SDK 57 band only, from 0.0.11 on. Flat peer ranges resolve independently, so any range admitting both SDK 54 (RN 0.81 + Reanimated 4.1) and SDK 57 (RN 0.86 + Reanimated 4.5) also admits RN 0.81 + Reanimated 4.6, which cannot install. A consumer on SDK 54 has no supported release: 0.0.11 excludes the band, and 0.0.10 admits it only through a range that npm can reject, so that consumer needs a pinned lockfile it already resolved. Supporting SDK 54 honestly needs a separate release line. Adding sdk-55 and sdk-56 fixtures would show whether the band can widen."
     },
     "@rootnative/components": {
       "oldestSupported": "sdk-57",
@@ -60,9 +78,7 @@
           "status": "FIXED, unreleased"
         }
       ],
-      "fixtures": [
-        "sdk-57"
-      ],
+      "fixtures": ["sdk-57"],
       "newestSupported": "sdk-57",
       "verified": {
         "0.0.0-alpha.14+unreleased": {
@@ -77,9 +93,7 @@
     "@rootnative/core": {
       "oldestSupported": "sdk-57",
       "range": "OK — internally consistent as of the SDK 57 band",
-      "fixtures": [
-        "sdk-57"
-      ]
+      "fixtures": ["sdk-57"]
     }
   }
 }
