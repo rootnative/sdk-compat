@@ -198,11 +198,17 @@ those.
 
 Step 6 of 6 — the matrix is complete and both libraries are green through it.
 
-Two things remain unproven or undone, on purpose:
-
-- **The workflow has never run on GitHub.** Every command is verified locally
-  and the YAML parses with all actions pinned, but matrix expansion and artifact
-  passing only exercise after the first push.
-- **Both repos still develop against SDK 54** (RN 0.81.5) while declaring the
-  SDK 57 band. Tests and typecheck pass, but the dev pins now disagree with the
-  published contract, so they should move to the SDK 57 stack.
+- **The workflow runs on GitHub.** The first run failed because every checkout
+  took the caller's repository; commit `83f8628` names `rootnative/sdk-compat`
+  on each checkout. The `inertia` cells for `0.0.11` came from its candidate
+  run on 2026-09-08.
+- **Both repos develop against the SDK 57 band they declare.** `ui` moved first;
+  `inertia` moved its dev pins, its example, and its peer ranges in `0.0.11`
+  (2026-09-09) and dropped SDK 54. `game-engine` is the one library still on
+  SDK 54, and it is not in the matrix.
+- **`support.json` holds rows for `@rootnative/inertia@0.0.12` and
+  `@rootnative/components@0.0.0-alpha.16`**, both from `scripts/run-cell.sh`
+  runs of the published tarballs on 2026-09-21. Every `cell` job now uploads a
+  `compat-result-*` artifact (`scripts/record-result.mjs`), so a green run
+  leaves a row-shaped record that a human copies into the file instead of
+  writing it from memory.

@@ -247,19 +247,51 @@ jobs:
       # complaint — so the installer's exit code proves nothing. This reads the
       # installed tree instead.
       - name: Assert peers
+        id: peers
         run: node scripts/check-peers.mjs fixtures/${{ matrix.fixture }}
 
       # Assertion 2. Metro follows the `react-native` export condition, which
       # inertia points at src/.
       - name: Bundle native
+        id: bundle
         working-directory: fixtures/${{ matrix.fixture }}
         run: yarn bundle
 
       # Assertion 3. The web export takes the `import` condition instead and is
       # the only one that loads dist/ — where the alpha.10 worklet crash lived.
       - name: Bundle web
+        id: bundle-web
         working-directory: fixtures/${{ matrix.fixture }}
         run: yarn bundle:web
+
+      # Rule 4: only a green run updates support.json, and a human writes the
+      # row. Without a record the row is written from memory after the run,
+      # which is how the file fell two releases behind. Each cell leaves one
+      # JSON file in the shape of a `verified` entry: what it installed and what
+      # each assertion returned. The row is then copied, not recalled.
+      - name: Record result
+        if: always()
+        env:
+          FIXTURE: ${{ matrix.fixture }}
+          SPEC: ${{ matrix.spec }}
+          TARBALL: ${{ inputs.tarball-artifact }}
+          PEERS: ${{ steps.peers.outcome }}
+          BUNDLE: ${{ steps.bundle.outcome }}
+          BUNDLE_WEB: ${{ steps.bundle-web.outcome }}
+        run: |
+          node scripts/record-result.mjs \
+            --fixture "$FIXTURE" --spec "$SPEC" --tarball "$TARBALL" \
+            --peers "$PEERS" --bundle "$BUNDLE" --bundle-web "$BUNDLE_WEB" \
+            --out results
+
+      - name: Upload result
+        if: always()
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: compat-result-${{ matrix.fixture }}-${{ strategy.job-index }}
+          path: results/*.json
+          if-no-files-found: error
+          retention-days: 90
 
       - name: Summarise
         if: always()
