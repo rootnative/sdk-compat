@@ -5,8 +5,8 @@
       "from": "react-native-worklets",
       "peer": "@react-native/metro-config",
       "reason": "Over-declared peer. Expo apps use @expo/metro-config, so the bare RN package is legitimately absent.",
-      "evidence": "worklets 0.10.1 added this peer and does not mark it optional; 0.5.2 did not declare it at all. The SDK 57 fixture bundles green without it: 996 modules, inertia present (createMotionComponent x9, __workletHash x134).",
-      "seen": "fixtures/sdk-57"
+      "evidence": "worklets 0.10.1 added this peer and does not mark it optional; 0.5.2 did not declare it at all. The SDK 57 fixture bundles green without it: 996 modules, inertia present (createMotionComponent x9, __workletHash x134). worklets 0.13.0 (SDK 58) still declares it with no peerDependenciesMeta. In both 0.10.1 and 0.13.0, package.json is the only file that names it; no code imports it. The SDK 58 fixture bundles green without it, with react-native-reanimated 4.7.1 as the candidate: Android 957 modules (__workletHash x548), web 541 modules. The one metro-config string in the Android bundle is worklets' own package.json, which the bundle carries as data. Checked 2026-10-20.",
+      "seen": ["fixtures/sdk-57", "fixtures/sdk-58"]
     }
   ]
 }

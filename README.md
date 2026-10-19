@@ -108,7 +108,8 @@ justified it. Suppressed peers are printed on each run rather than hidden, so a
 stale exception cannot rot unnoticed. The first entry is
 `react-native-worklets` -> `@react-native/metro-config`: worklets 0.10.1 added
 that peer without marking it optional, and Expo apps use `@expo/metro-config`
-instead, so it is legitimately absent and SDK 57 bundles green without it.
+instead, so it is legitimately absent. SDK 57 (worklets 0.10.1) and SDK 58
+(worklets 0.13.0) both bundle green without it.
 
 **A pinned fixture cannot catch a bad peer *range*, so `check:range` does it
 statically.** Every fixture pins one internally consistent SDK, so an
