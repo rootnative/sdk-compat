@@ -8,13 +8,6 @@
     "range": "check-range.mjs — the declared range admits only combinations that exist"
   },
   "runtimes": {
-    "sdk-54": {
-      "expo": "54.0.37",
-      "react": "19.1.0",
-      "react-native": "0.81.5",
-      "react-native-reanimated": "4.1.7",
-      "react-native-worklets": "0.5.2"
-    },
     "sdk-57": {
       "expo": "57.0.20",
       "react": "19.2.3",

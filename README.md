@@ -17,7 +17,6 @@ other — every fixture owns its lockfile and resolves its own runtime.
 ## Layout
 
     .github/workflows/compat.yml
-    fixtures/sdk-54/         Expo 54 · RN 0.81 · Reanimated 4.1 · worklets 0.5
     fixtures/sdk-57/         Expo 57 · RN 0.86 · Reanimated 4.5 · worklets 0.10
     fixtures/sdk-58/         Expo 58 · RN 0.88 · Reanimated 4.7 · worklets 0.13
     scripts/check-peers.mjs  is the installed tree valid?
@@ -30,11 +29,11 @@ other — every fixture owns its lockfile and resolves its own runtime.
 ## Running one cell
 
     yarn install                                  # once, at the repo root
-    cd fixtures/sdk-54
+    cd fixtures/sdk-57
     yarn install --frozen-lockfile                # the pinned SDK runtime
-    yarn add @rootnative/inertia@0.0.10           # the candidate
-    cd ../.. && yarn check:peers fixtures/sdk-54  # assertion 1
-    cd fixtures/sdk-54 && yarn bundle             # assertion 2
+    yarn add @rootnative/inertia@0.0.12           # the candidate
+    cd ../.. && yarn check:peers fixtures/sdk-57  # assertion 1
+    cd fixtures/sdk-57 && yarn bundle             # assertion 2
 
 A fixture pins the **SDK runtime** and nothing else. The library under test is
 never a fixture dependency — the runner installs it on top, so one fixture
@@ -190,10 +189,11 @@ range admitting both SDK 54 (RN 0.81 + Reanimated 4.1) and SDK 57 (RN 0.86 +
 Reanimated 4.5) also admits RN 0.81 + Reanimated 4.6, which cannot install.
 Supporting two SDK bands honestly needs two release lines, not one wide range.
 
-The `sdk-54` fixture stays in the repository. It is now a documented boundary:
-running it against these packages reports exactly which four peers fall outside
-the band. `support.json` lists the cells each library claims, and CI runs only
-those.
+The `sdk-54` fixture was the documented boundary for that band: running it
+against these packages reported exactly which four peers fell outside it. No
+library claimed it, so CI never ran it, and it was removed on 2026-10-20 when
+the `sdk-58` fixture was added. `support.json` lists the cells each library
+claims, and CI runs only those.
 
 ## Status
 
@@ -205,8 +205,8 @@ Step 6 of 6 — the matrix is complete and both libraries are green through it.
   run on 2026-09-08.
 - **Both repos develop against the SDK 57 band they declare.** `ui` moved first;
   `inertia` moved its dev pins, its example, and its peer ranges in `0.0.11`
-  (2026-09-09) and dropped SDK 54. `game-engine` is the one library still on
-  SDK 54, and it is not in the matrix.
+  (2026-09-09) and dropped SDK 54. `game-engine` moved to SDK 57 on
+  2026-10-14, and it is not in the matrix.
 - **`support.json` holds rows for `@rootnative/inertia@0.0.12` and
   `@rootnative/components@0.0.0-alpha.16`**, both from `scripts/run-cell.sh`
   runs of the published tarballs on 2026-09-21. Every `cell` job now uploads a

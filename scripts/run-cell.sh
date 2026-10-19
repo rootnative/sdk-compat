@@ -2,7 +2,7 @@
 # Run one matrix cell locally, in the same order compat.yml runs it.
 #
 # Usage: scripts/run-cell.sh <fixture> <spec-or-tarball>
-#   scripts/run-cell.sh sdk-54 @rootnative/inertia@0.0.10
+#   scripts/run-cell.sh sdk-57 @rootnative/inertia@0.0.12
 #   scripts/run-cell.sh sdk-57 ../inertia/packages/core/rootnative-inertia-0.0.10.tgz
 #
 # The fixture's package.json and yarn.lock are restored afterwards, because a
