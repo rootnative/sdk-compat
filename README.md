@@ -19,6 +19,7 @@ other — every fixture owns its lockfile and resolves its own runtime.
     .github/workflows/compat.yml
     fixtures/sdk-54/         Expo 54 · RN 0.81 · Reanimated 4.1 · worklets 0.5
     fixtures/sdk-57/         Expo 57 · RN 0.86 · Reanimated 4.5 · worklets 0.10
+    fixtures/sdk-58/         Expo 58 · RN 0.88 · Reanimated 4.7 · worklets 0.13
     scripts/check-peers.mjs  is the installed tree valid?
     scripts/check-range.mjs  does the declared range promise the impossible?
     scripts/matrix.mjs       fixtures x specs, for CI
