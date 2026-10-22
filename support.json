@@ -1,6 +1,6 @@
 {
   "comment": "What the matrix has actually proven, not what a peer range claims. runtimes are read from each fixture's installed tree. `fixtures` is the set of cells a library claims to support: CI runs exactly those, so an unsupported SDK is a documented boundary rather than a red build. Update only from a green run.",
-  "lastVerified": "2026-09-21",
+  "lastVerified": "2026-10-23",
   "assertions": {
     "peers": "check-peers.mjs — every peer in the installed tree is satisfied",
     "bundle": "expo export --platform android — the react-native export condition (src, for inertia)",
@@ -14,13 +14,38 @@
       "react-native": "0.86.3",
       "react-native-reanimated": "4.5.5",
       "react-native-worklets": "0.10.1"
+    },
+    "sdk-58": {
+      "expo": "58.0.16",
+      "react": "19.3.0",
+      "react-native": "0.88.0",
+      "react-native-reanimated": "4.7.1",
+      "react-native-worklets": "0.13.0"
     }
   },
   "libraries": {
     "@rootnative/inertia": {
       "oldestSupported": "sdk-57",
-      "newestSupported": "sdk-57",
+      "newestSupported": "sdk-58",
       "verified": {
+        "0.0.20+unreleased": {
+          "comment": "Candidate for 0.0.20, the first release on the SDK 58 band, packed from inertia b182bc4 (package.json still reads 0.0.19: the release workflow bumps the version). scripts/run-cell.sh sdk-58 ../inertia/pack/rootnative-inertia-0.0.19.tgz, run locally on 2026-10-23 in the CI order (range, install runtime, install candidate, install peers, set candidate, peers, bundle, bundle:web). The published tarball will differ in the version field and the sibling @rootnative/inertia floors only; the pre-publish gate runs the same cell on the release candidate.",
+          "range": "OK — react >=19.3.0 <20.0.0, react-native >=0.88.0 <0.89.0, react-native-reanimated >=4.7.0 <4.8.0, react-native-worklets >=0.13.0 <0.14.0 are internally consistent (check:range, 2026-10-23).",
+          "rangeVerifiedOn": "2026-10-23",
+          "cellsFrom": "b182bc4 (candidate, pre-bump)",
+          "cellsRunOn": "2026-10-23",
+          "cellsRunBy": "scripts/run-cell.sh, local (macOS, yarn 1.22.22)",
+          "sdk-57": {
+            "peers": "not run — out of the declared band, by design; SDK 57 stays on 0.0.19",
+            "bundle": "n/a",
+            "bundle:web": "n/a"
+          },
+          "sdk-58": {
+            "peers": "pass · 1 suppressed (react-native-worklets@0.13.0 wants @react-native/metro-config, listed in peer-exceptions.json)",
+            "bundle": "pass — Android, 1026 modules",
+            "bundle:web": "pass — 564 modules"
+          }
+        },
         "0.0.12": {
           "comment": "Published 2026-09-13 (npm dist-tag latest, tag core+gestures+gradients+svg@0.0.12). The cells below installed the PUBLISHED tarball from the registry, not a candidate: scripts/run-cell.sh sdk-57 @rootnative/inertia@0.0.12, run locally on 2026-09-21 in the CI order (range, install runtime, install candidate, install peers, set candidate, peers, bundle, bundle:web).",
           "range": "OK — react >=19.2.3 <20.0.0, react-native >=0.83.0 <0.87.0, react-native-reanimated >=4.5.0 <4.6.0, react-native-worklets >=0.10.0 <0.11.0 are internally consistent (check:range, 2026-09-21).",
@@ -72,9 +97,9 @@
           }
         }
       },
-      "range": "OK for 0.0.12 and 0.0.11 as published — verified 2026-09-21 and 2026-09-09. NOT OK for 0.0.10, whose ranges predate the narrowing; see the verified entry for it.",
-      "fixtures": ["sdk-57"],
-      "note": "Declares the SDK 57 band only, from 0.0.11 on. Flat peer ranges resolve independently, so any range admitting both SDK 54 (RN 0.81 + Reanimated 4.1) and SDK 57 (RN 0.86 + Reanimated 4.5) also admits RN 0.81 + Reanimated 4.6, which cannot install. A consumer on SDK 54 has no supported release: 0.0.11 excludes the band, and 0.0.10 admits it only through a range that npm can reject, so that consumer needs a pinned lockfile it already resolved. Supporting SDK 54 honestly needs a separate release line. Adding sdk-55 and sdk-56 fixtures would show whether the band can widen."
+      "range": "OK for the 0.0.20 candidate on the SDK 58 band (verified 2026-10-23), and for 0.0.12 and 0.0.11 as published on the SDK 57 band (2026-09-21 and 2026-09-09). NOT OK for 0.0.10, whose ranges predate the narrowing; see the verified entry for it.",
+      "fixtures": ["sdk-58"],
+      "note": "Declares one SDK band per release line: SDK 58 from 0.0.20 on, SDK 57 from 0.0.11 to 0.0.19. Flat peer ranges resolve independently, so a range that admits both SDK 57 (React 19.2.3 + RN 0.86 + Reanimated 4.5 + worklets 0.10) and SDK 58 (React 19.3 + RN 0.88 + Reanimated 4.7 + worklets 0.13) also admits React 19.2.3 + RN 0.88 and worklets 0.10 + Reanimated 4.7, which cannot install; check:range rejects it. A consumer on SDK 57 installs 0.0.19. The same shape dropped SDK 54 at 0.0.11: a consumer on SDK 54 has no supported release, because 0.0.10 admits it only through a range that npm can reject. Supporting a second band honestly needs a second release line."
     },
     "@rootnative/components": {
       "oldestSupported": "sdk-57",

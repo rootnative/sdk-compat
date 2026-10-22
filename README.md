@@ -171,8 +171,12 @@ and packed:
 
 | Package                  | Fixture | range | peers               | bundle | bundle:web |
 | ------------------------ | ------- | ----- | ------------------- | ------ | ---------- |
-| `@rootnative/inertia`    | sdk-57  | pass  | pass · 1 suppressed | pass   | pass       |
+| `@rootnative/inertia`    | sdk-58  | pass  | pass · 1 suppressed | pass   | pass       |
 | `@rootnative/components` | sdk-57  | pass  | pass · 1 suppressed | pass   | pass       |
+
+`@rootnative/inertia` claims `sdk-58` from its `0.0.20` candidate
+(2026-10-23); `0.0.11` to `0.0.19` were verified on `sdk-57`, which is now its
+documented boundary. `@rootnative/components` still claims `sdk-57`.
 
 Getting there took two real fixes, both found by this matrix:
 
@@ -196,6 +200,12 @@ library claimed it, so CI never ran it, and it was removed on 2026-10-20 when
 the `sdk-58` fixture was added. `support.json` lists the cells each library
 claims, and CI runs only those.
 
+The SDK 58 move repeated the shape, one band up. Reanimated 4.7 admits RN
+0.86–0.88 on its own, but React 19.2.3 does not pair with RN 0.88 and worklets
+0.10 does not pair with Reanimated 4.7, so one range for SDK 57 and SDK 58
+fails `check:range`. `inertia` moved as a band, `0.0.20` on SDK 58, and SDK 57
+keeps `0.0.19`.
+
 ## Status
 
 Step 6 of 6 — the matrix is complete and both libraries are green through it.
@@ -204,10 +214,11 @@ Step 6 of 6 — the matrix is complete and both libraries are green through it.
   took the caller's repository; commit `83f8628` names `rootnative/sdk-compat`
   on each checkout. The `inertia` cells for `0.0.11` came from its candidate
   run on 2026-09-08.
-- **Both repos develop against the SDK 57 band they declare.** `ui` moved first;
-  `inertia` moved its dev pins, its example, and its peer ranges in `0.0.11`
-  (2026-09-09) and dropped SDK 54. `game-engine` moved to SDK 57 on
-  2026-10-14, and it is not in the matrix.
+- **Both repos develop against the band they declare.** `ui` moved to SDK 57
+  first; `inertia` moved its dev pins, its example, and its peer ranges in
+  `0.0.11` (2026-09-09) and dropped SDK 54, then moved to SDK 58 for `0.0.20`
+  (2026-10-22). `game-engine` moved to SDK 57 on 2026-10-14, and it is not in
+  the matrix.
 - **`support.json` holds rows for `@rootnative/inertia@0.0.12` and
   `@rootnative/components@0.0.0-alpha.16`**, both from `scripts/run-cell.sh`
   runs of the published tarballs on 2026-09-21. Every `cell` job now uploads a
