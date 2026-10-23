@@ -68,6 +68,12 @@ jobs:
       tarball-artifact: candidate
 ```
 
+The artifact can hold more than one tarball. The cell installs all of them,
+and the range audit reads the one of `package`. Put the packages that release
+together in one artifact: `ui` packs `core` beside `components`. Without it,
+`install-peers` takes `core` from the registry, where the last release can
+declare the previous SDK band.
+
 **`schedule`** — Mondays 06:00 UTC, and the reason this repository exists.
 Nothing in our repositories changes, yet the answer does. It resolves fresh,
 with fixture lockfiles deleted, across every library in `support.json`.
@@ -178,8 +184,9 @@ and packed:
 All three claim `sdk-58` (2026-10-23): `inertia` from its `0.0.20` candidate,
 `components` and `core` from their `0.0.0-alpha.29` candidates. `sdk-57` is the
 documented boundary: `inertia` `0.0.11` to `0.0.19` and `components`
-`alpha.16` to `alpha.28` were verified there. The `components` cell needs the
-`core` candidate installed next to it: `install-peers` resolves `@rootnative/core`
+`alpha.16` to `alpha.28` were verified there. The `components` cell installs
+the `core` candidate next to it, from the same artifact in CI or as an extra
+tarball to `run-cell.sh`. Otherwise `install-peers` resolves `@rootnative/core`
 from the registry, where the previous release still declares the old band.
 
 Getting there took two real fixes, both found by this matrix:

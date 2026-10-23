@@ -29,6 +29,10 @@ on:
         description: >-
           Name of an artifact from the SAME workflow run holding a `npm pack`
           .tgz. Set this to gate a release candidate that is not published yet.
+          The artifact can also hold the tarballs of packages that release
+          with it: the cell installs every tarball, so a peer from the same
+          release does not come from the registry. The range audit reads the
+          tarball of `package` only.
         required: false
         type: string
         default: ""
@@ -155,11 +159,20 @@ jobs:
 
       # A declared range can over-promise without any fixture failing, because
       # every fixture pins one internally consistent SDK. This is the check that
-      # catches it, and it needs no install.
+      # catches it, and it needs no install. The artifact can hold the tarballs
+      # of sibling packages, so the audit picks the one of `package` by name.
       - name: Audit declared range
         run: |
           if [ -n "${{ inputs.tarball-artifact }}" ]; then
-            TGZ="$(ls "$GITHUB_WORKSPACE"/candidate/*.tgz | head -1)"
+            TGZ=""
+            for FILE in "$GITHUB_WORKSPACE"/candidate/*.tgz; do
+              NAME="$(tar -xzOf "$FILE" package/package.json | node -pe 'JSON.parse(require("fs").readFileSync(0, "utf8")).name')"
+              if [ "$NAME" = '${{ inputs.package }}' ]; then TGZ="$FILE"; fi
+            done
+            if [ -z "$TGZ" ]; then
+              echo "no tarball of ${{ inputs.package }} in the artifact ${{ inputs.tarball-artifact }}"
+              exit 1
+            fi
             echo "auditing local candidate: $TGZ"
             node scripts/check-range.mjs "$TGZ"
           else
@@ -218,14 +231,20 @@ jobs:
           fi
 
       # The fixture pins the SDK runtime only. The candidate goes on top, so one
-      # fixture serves every library and every version.
+      # fixture serves every library and every version. Every tarball of the
+      # artifact goes on: a package that releases with the candidate, such as
+      # `core` beside `components`, then does not come from the registry, where
+      # the last release can declare another SDK band.
       - name: Install candidate
         working-directory: fixtures/${{ matrix.fixture }}
         run: |
           if [ -n "${{ inputs.tarball-artifact }}" ]; then
-            TGZ="$(ls "$GITHUB_WORKSPACE"/candidate/*.tgz | head -1)"
-            echo "installing local candidate: $TGZ"
-            yarn add "file:$TGZ"
+            TARGETS=()
+            for FILE in "$GITHUB_WORKSPACE"/candidate/*.tgz; do
+              TARGETS+=("file:$FILE")
+            done
+            echo "installing local candidate: ${TARGETS[*]}"
+            yarn add "${TARGETS[@]}"
           else
             yarn add '${{ matrix.spec }}'
           fi
