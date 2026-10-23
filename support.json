@@ -103,7 +103,7 @@
     },
     "@rootnative/components": {
       "oldestSupported": "sdk-57",
-      "range": "OK — internally consistent as of the SDK 57 band",
+      "range": "OK for the alpha.29 candidate on the SDK 58 band (verified 2026-10-23); OK for alpha.16 on the SDK 57 band (2026-09-21).",
       "findings": [
         {
           "id": "optional-peers-are-static-imports",
@@ -114,9 +114,27 @@
           "status": "FIXED in 0.0.0-alpha.16 (published 2026-09-13): peerDependenciesMeta marks only react-native-reanimated and react-native-worklets optional. Verified by the alpha.16 cell on 2026-09-21, where install-peers added vector-icons, safe-area-context and svg as required peers."
         }
       ],
-      "fixtures": ["sdk-57"],
-      "newestSupported": "sdk-57",
+      "fixtures": ["sdk-58"],
+      "newestSupported": "sdk-58",
       "verified": {
+        "0.0.0-alpha.29+unreleased": {
+          "comment": "Candidate for 0.0.0-alpha.29, the first release on the SDK 58 band, packed from the ui working tree (package.json still reads alpha.28: the release workflow bumps the version). Run locally on 2026-10-23 in the CI order. install-peers resolves the @rootnative/core peer from the registry, where alpha.28 still declares the SDK 57 band, so run-cell.sh alone fails the peers step on a core bump. The cell was run with the local core candidate installed next to the components candidate (yarn add both tarballs, then install-peers, set-candidate, check-peers, bundle, bundle:web). The pre-publish gate in CI has the same shape: it passes once core alpha.29 is on the registry, which the release order (core before components) provides.",
+          "range": "OK — react >=19.3.0 <20.0.0, react-native >=0.88.0 <0.89.0, @rootnative/inertia >=0.0.20 <0.1.0 (components also react-native-reanimated >=4.7.0 <4.8.0, react-native-worklets >=0.13.0 <0.14.0) are internally consistent (check:range, 2026-10-23).",
+          "rangeVerifiedOn": "2026-10-23",
+          "cellsFrom": "ui working tree (candidate, pre-bump)",
+          "cellsRunOn": "2026-10-23",
+          "cellsRunBy": "scripts/run-cell.sh and its steps by hand, local (macOS, yarn 1.22.22)",
+          "sdk-57": {
+            "peers": "not run — out of the declared band, by design; SDK 57 stays on 0.0.0-alpha.28",
+            "bundle": "n/a",
+            "bundle:web": "n/a"
+          },
+          "sdk-58": {
+            "peers": "pass · 1 suppressed (react-native-worklets@0.13.0 wants @react-native/metro-config, listed in peer-exceptions.json)",
+            "bundle": "pass — Android, 1216 modules",
+            "bundle:web": "pass — 671 modules"
+          }
+        },
         "0.0.0-alpha.16": {
           "comment": "Published 2026-09-13 (npm dist-tag latest; alphas ship on latest). The cells installed the PUBLISHED tarball from the registry: scripts/run-cell.sh sdk-57 @rootnative/components@0.0.0-alpha.16, run locally on 2026-09-21. install-peers added @expo/vector-icons@>=14.0.0, @rootnative/core@>=0.0.0-alpha.16, @rootnative/inertia@>=0.0.11 <0.1.0, react-native-safe-area-context@>=4.0.0, react-native-svg@>=15.0.0, so the tree is what a real consumer gets.",
           "range": "OK — internally consistent (check:range, 2026-09-21).",
@@ -136,12 +154,34 @@
             "bundle:web": "pass"
           }
         }
-      }
+      },
+      "note": "Declares one SDK band per release line: SDK 58 from 0.0.0-alpha.29 on, SDK 57 from alpha.16 to alpha.28. The @rootnative/inertia floor moved to 0.0.20 with the band, so an SDK 57 app cannot pair alpha.29 with inertia 0.0.19. See the @rootnative/inertia note for why one range cannot admit both bands."
     },
     "@rootnative/core": {
       "oldestSupported": "sdk-57",
-      "range": "OK — internally consistent as of the SDK 57 band",
-      "fixtures": ["sdk-57"]
+      "range": "OK for the alpha.29 candidate on the SDK 58 band (verified 2026-10-23); OK on the SDK 57 band before it.",
+      "fixtures": ["sdk-58"],
+      "newestSupported": "sdk-58",
+      "verified": {
+        "0.0.0-alpha.29+unreleased": {
+          "comment": "Candidate for 0.0.0-alpha.29, the first release on the SDK 58 band, packed from the ui working tree (package.json still reads alpha.28: the release workflow bumps the version). Run locally on 2026-10-23 in the CI order. scripts/run-cell.sh sdk-58 ../ui/pack/rootnative-core-0.0.0-alpha.28.tgz.",
+          "range": "OK — react >=19.3.0 <20.0.0, react-native >=0.88.0 <0.89.0, @rootnative/inertia >=0.0.20 <0.1.0 (components also react-native-reanimated >=4.7.0 <4.8.0, react-native-worklets >=0.13.0 <0.14.0) are internally consistent (check:range, 2026-10-23).",
+          "rangeVerifiedOn": "2026-10-23",
+          "cellsFrom": "ui working tree (candidate, pre-bump)",
+          "cellsRunOn": "2026-10-23",
+          "cellsRunBy": "scripts/run-cell.sh and its steps by hand, local (macOS, yarn 1.22.22)",
+          "sdk-57": {
+            "peers": "not run — out of the declared band, by design; SDK 57 stays on 0.0.0-alpha.28",
+            "bundle": "n/a",
+            "bundle:web": "n/a"
+          },
+          "sdk-58": {
+            "peers": "pass · 1 suppressed (react-native-worklets@0.13.0 wants @react-native/metro-config, listed in peer-exceptions.json)",
+            "bundle": "pass — Android, 1030 modules",
+            "bundle:web": "pass — 571 modules"
+          }
+        }
+      }
     }
   }
 }

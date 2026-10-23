@@ -172,11 +172,15 @@ and packed:
 | Package                  | Fixture | range | peers               | bundle | bundle:web |
 | ------------------------ | ------- | ----- | ------------------- | ------ | ---------- |
 | `@rootnative/inertia`    | sdk-58  | pass  | pass · 1 suppressed | pass   | pass       |
-| `@rootnative/components` | sdk-57  | pass  | pass · 1 suppressed | pass   | pass       |
+| `@rootnative/components` | sdk-58  | pass  | pass · 1 suppressed | pass   | pass       |
+| `@rootnative/core`       | sdk-58  | pass  | pass · 1 suppressed | pass   | pass       |
 
-`@rootnative/inertia` claims `sdk-58` from its `0.0.20` candidate
-(2026-10-23); `0.0.11` to `0.0.19` were verified on `sdk-57`, which is now its
-documented boundary. `@rootnative/components` still claims `sdk-57`.
+All three claim `sdk-58` (2026-10-23): `inertia` from its `0.0.20` candidate,
+`components` and `core` from their `0.0.0-alpha.29` candidates. `sdk-57` is the
+documented boundary: `inertia` `0.0.11` to `0.0.19` and `components`
+`alpha.16` to `alpha.28` were verified there. The `components` cell needs the
+`core` candidate installed next to it: `install-peers` resolves `@rootnative/core`
+from the registry, where the previous release still declares the old band.
 
 Getting there took two real fixes, both found by this matrix:
 
