@@ -270,19 +270,33 @@ jobs:
         id: peers
         run: node scripts/check-peers.mjs fixtures/${{ matrix.fixture }}
 
-      # Assertion 2. Metro follows the `react-native` export condition, which
+      # Assertion 2. The step above adds every absent peer, so a library that
+      # asks for Expo gets it in a fixture with no Expo, and the bundle can
+      # still pass. This fails instead. It skips an Expo app.
+      - name: Assert no Expo runtime
+        id: no-expo
+        run: node scripts/check-no-expo.mjs fixtures/${{ matrix.fixture }}
+
+      # Assertion 3. Metro follows the `react-native` export condition, which
       # inertia points at src/.
       - name: Bundle native
         id: bundle
         working-directory: fixtures/${{ matrix.fixture }}
         run: yarn bundle
 
-      # Assertion 3. The web export takes the `import` condition instead and is
+      # Assertion 4. The web export takes the `import` condition instead and is
       # the only one that loads dist/ — where the alpha.10 worklet crash lived.
+      # A React Native CLI fixture has no web target and no `bundle:web`
+      # script. The step then bundles nothing, and the record says n/a.
       - name: Bundle web
         id: bundle-web
         working-directory: fixtures/${{ matrix.fixture }}
-        run: yarn bundle:web
+        run: |
+          if node -e 'process.exit(require("./package.json").scripts?.["bundle:web"] ? 0 : 1)'; then
+            yarn bundle:web
+          else
+            echo "bundle web: n/a, the fixture has no web target"
+          fi
 
       # Rule 4: only a green run updates support.json, and a human writes the
       # row. Without a record the row is written from memory after the run,
@@ -296,13 +310,14 @@ jobs:
           SPEC: ${{ matrix.spec }}
           TARBALL: ${{ inputs.tarball-artifact }}
           PEERS: ${{ steps.peers.outcome }}
+          NO_EXPO: ${{ steps.no-expo.outcome }}
           BUNDLE: ${{ steps.bundle.outcome }}
           BUNDLE_WEB: ${{ steps.bundle-web.outcome }}
         run: |
           node scripts/record-result.mjs \
             --fixture "$FIXTURE" --spec "$SPEC" --tarball "$TARBALL" \
-            --peers "$PEERS" --bundle "$BUNDLE" --bundle-web "$BUNDLE_WEB" \
-            --out results
+            --peers "$PEERS" --no-expo "$NO_EXPO" --bundle "$BUNDLE" \
+            --bundle-web "$BUNDLE_WEB" --out results
 
       - name: Upload result
         if: always()

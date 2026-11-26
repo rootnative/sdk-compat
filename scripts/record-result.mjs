@@ -11,10 +11,13 @@
  *
  * Usage:
  *   node scripts/record-result.mjs --fixture sdk-57 --spec @rootnative/inertia@0.0.12 \
- *     --peers success --bundle success --bundle-web failure [--tarball <artifact>] [--out results]
+ *     --peers success --no-expo success --bundle success --bundle-web failure \
+ *     [--tarball <artifact>] [--out results]
  *
- * The three outcome flags take a GitHub `steps.<id>.outcome` value: success,
- * failure, cancelled or skipped.
+ * The four outcome flags take a GitHub `steps.<id>.outcome` value: success,
+ * failure, cancelled or skipped. A check that can't apply to the fixture gets
+ * n/a, whatever its flag says: `no-expo` on an Expo app, and `bundle:web` on a
+ * fixture with no `bundle:web` script.
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
@@ -51,6 +54,14 @@ const at = spec.lastIndexOf('@')
 const pkg = at > 0 ? spec.slice(0, at) : spec
 const dir = join('fixtures', fixture)
 
+const readJson = (file) =>
+  existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : {}
+// The same rules as check-no-expo.mjs and run-cell.sh.
+const isExpoApp = Boolean(readJson(join(dir, 'app.json')).expo)
+const hasWebTarget = Boolean(
+  readJson(join(dir, 'package.json')).scripts?.['bundle:web'],
+)
+
 const result = {
   recordedOn: new Date().toISOString().slice(0, 10),
   fixture,
@@ -67,12 +78,14 @@ const result = {
       'react-native',
       'react-native-reanimated',
       'react-native-worklets',
+      '@react-native-community/cli',
     ].map((name) => [name, installedVersion(dir, name)]),
   ),
   cells: {
     peers: outcome(arg('--peers')),
+    'no-expo': isExpoApp ? 'n/a' : outcome(arg('--no-expo')),
     bundle: outcome(arg('--bundle')),
-    'bundle:web': outcome(arg('--bundle-web')),
+    'bundle:web': hasWebTarget ? outcome(arg('--bundle-web')) : 'n/a',
   },
   // In a reusable workflow GITHUB_REPOSITORY is the caller, which is where the
   // run lives, so the link is right for inertia and ui as well as for a

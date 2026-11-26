@@ -6,6 +6,7 @@
 #   scripts/run-cell.sh sdk-57 ../inertia/packages/core/rootnative-inertia-0.0.10.tgz
 #   scripts/run-cell.sh sdk-58 ../ui/pack/rootnative-components-0.0.0-alpha.28.tgz \
 #     ../ui/pack/rootnative-core-0.0.0-alpha.28.tgz
+#   scripts/run-cell.sh rn-cli-0.88 @rootnative/inertia@0.0.30
 #
 # Each extra tarball is a package that releases with the candidate. It is
 # installed beside the candidate, as the CI gate installs every tarball of its
@@ -82,12 +83,16 @@ node "$ROOT/scripts/set-candidate.mjs" "$FIXTURE" "$PKG"
 echo "==> peers"
 node "$ROOT/scripts/check-peers.mjs" "fixtures/$FIXTURE"
 
+echo "==> no Expo runtime"
+node "$ROOT/scripts/check-no-expo.mjs" "fixtures/$FIXTURE"
+
 bundle() {
   local script="$1" label="$2" log
   log="$(mktemp)"
   echo "==> $label"
   if (cd "$DIR" && yarn "$script") >"$log" 2>&1; then
-    grep -E "Bundled" "$log" || true
+    # Expo prints "Bundled", and the React Native CLI prints "Done writing".
+    grep -E "Bundled|Done writing bundle output" "$log" || true
   else
     # Metro reports a failed resolution over many lines. An earlier version
     # piped this through grep and printed nothing at all when it failed.
@@ -100,7 +105,12 @@ bundle() {
 }
 
 bundle bundle "bundle native (src path)"
-bundle bundle:web "bundle web (dist path)"
+if node -e 'process.exit(require(process.argv[1]).scripts?.["bundle:web"] ? 0 : 1)' \
+  "$DIR/package.json"; then
+  bundle bundle:web "bundle web (dist path)"
+else
+  echo "==> bundle web: n/a, the fixture has no web target"
+fi
 
 if [ "$STATUS" -ne 0 ]; then
   echo "==> tree assertions passed, but the declared range over-promises"

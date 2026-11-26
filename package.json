@@ -4,6 +4,7 @@
   "private": true,
   "license": "MIT",
   "scripts": {
+    "check:no-expo": "node scripts/check-no-expo.mjs",
     "check:peers": "node scripts/check-peers.mjs",
     "check:range": "node scripts/check-range.mjs"
   },
