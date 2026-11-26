@@ -1,10 +1,11 @@
 {
   "comment": "What the matrix has actually proven, not what a peer range claims. runtimes are read from each fixture's installed tree. `fixtures` is the set of cells a library claims to support: CI runs exactly those, so an unsupported SDK is a documented boundary rather than a red build. Update only from a green run.",
-  "lastVerified": "2026-10-23",
+  "lastVerified": "2026-11-26",
   "assertions": {
     "peers": "check-peers.mjs — every peer in the installed tree is satisfied",
-    "bundle": "expo export --platform android — the react-native export condition (src, for inertia)",
-    "bundle:web": "expo export --platform web — the import condition (dist)",
+    "no-expo": "check-no-expo.mjs — a fixture that isn't an Expo app has no expo and no expo-modules-core in its tree; n/a on an Expo app",
+    "bundle": "expo export --platform android (Expo fixtures) or react-native bundle --platform android (rn-cli fixtures) — the react-native export condition (src, for inertia)",
+    "bundle:web": "expo export --platform web — the import condition (dist); n/a on an rn-cli fixture, which has no web target",
     "range": "check-range.mjs — the declared range admits only combinations that exist"
   },
   "runtimes": {
@@ -21,6 +22,13 @@
       "react-native": "0.88.0",
       "react-native-reanimated": "4.7.1",
       "react-native-worklets": "0.13.0"
+    },
+    "rn-cli-0.88": {
+      "@react-native-community/cli": "20.2.0",
+      "react": "19.3.0",
+      "react-native": "0.88.1",
+      "react-native-reanimated": "4.7.1",
+      "react-native-worklets": "0.13.0"
     }
   },
   "libraries": {
@@ -28,6 +36,27 @@
       "oldestSupported": "sdk-57",
       "newestSupported": "sdk-58",
       "verified": {
+        "0.0.30": {
+          "comment": "Published 2026-11-22 (npm dist-tag latest). Both cells installed the published tarball from the registry. rn-cli-0.88: scripts/run-cell.sh rn-cli-0.88 @rootnative/inertia@0.0.30, run locally on 2026-11-26 on a clean install of the fixture; install-peers had nothing to add. sdk-58: the workflow_dispatch run of @rootnative/inertia@latest (0.0.30) on sdk-compat b850217, 2026-11-26. The rn-cli-0.88 bundle counts come from a second bundle of the same tree, because run-cell.sh deletes its bundle on exit: modules are the __d( calls, and __workletHash counts the worklets that the plugin transformed in Reanimated, worklets and the candidate.",
+          "range": "OK — react >=19.3.0 <20.0.0, react-native >=0.88.0 <0.89.0, react-native-reanimated >=4.7.0 <4.8.0, react-native-worklets >=0.13.0 <0.14.0 are internally consistent (check:range, 2026-11-26).",
+          "rangeVerifiedOn": "2026-11-26",
+          "cellsFrom": "published tarball, @rootnative/inertia@0.0.30 from the registry",
+          "cellsRunOn": "2026-11-26",
+          "cellsRunBy": "rn-cli-0.88: scripts/run-cell.sh, local (macOS, node 24.14.1, yarn 1.22.22); sdk-58: compat.yml workflow_dispatch",
+          "dispatchRun": "https://github.com/rootnative/sdk-compat/actions/runs/45838774343",
+          "sdk-58": {
+            "peers": "pass · 1 suppressed (react-native-worklets@0.13.0 wants @react-native/metro-config, listed in peer-exceptions.json)",
+            "no-expo": "n/a",
+            "bundle": "pass — Android, 1030 modules",
+            "bundle:web": "pass — 564 modules"
+          },
+          "rn-cli-0.88": {
+            "peers": "pass",
+            "no-expo": "pass",
+            "bundle": "pass — Android, 901 modules, 574 __workletHash",
+            "bundle:web": "n/a — no web target"
+          }
+        },
         "0.0.20+unreleased": {
           "comment": "Candidate for 0.0.20, the first release on the SDK 58 band, packed from inertia b182bc4 (package.json still reads 0.0.19: the release workflow bumps the version). scripts/run-cell.sh sdk-58 ../inertia/pack/rootnative-inertia-0.0.19.tgz, run locally on 2026-10-23 in the CI order (range, install runtime, install candidate, install peers, set candidate, peers, bundle, bundle:web). The published tarball will differ in the version field and the sibling @rootnative/inertia floors only; the pre-publish gate runs the same cell on the release candidate.",
           "range": "OK — react >=19.3.0 <20.0.0, react-native >=0.88.0 <0.89.0, react-native-reanimated >=4.7.0 <4.8.0, react-native-worklets >=0.13.0 <0.14.0 are internally consistent (check:range, 2026-10-23).",
@@ -97,13 +126,13 @@
           }
         }
       },
-      "range": "OK for the 0.0.20 candidate on the SDK 58 band (verified 2026-10-23), and for 0.0.12 and 0.0.11 as published on the SDK 57 band (2026-09-21 and 2026-09-09). NOT OK for 0.0.10, whose ranges predate the narrowing; see the verified entry for it.",
-      "fixtures": ["sdk-58"],
+      "range": "OK for 0.0.30 as published (verified 2026-11-26), for the 0.0.20 candidate on the SDK 58 band (2026-10-23), and for 0.0.12 and 0.0.11 as published on the SDK 57 band (2026-09-21 and 2026-09-09). NOT OK for 0.0.10, whose ranges predate the narrowing; see the verified entry for it.",
+      "fixtures": ["sdk-58", "rn-cli-0.88"],
       "note": "Declares one SDK band per release line: SDK 58 from 0.0.20 on, SDK 57 from 0.0.11 to 0.0.19. Flat peer ranges resolve independently, so a range that admits both SDK 57 (React 19.2.3 + RN 0.86 + Reanimated 4.5 + worklets 0.10) and SDK 58 (React 19.3 + RN 0.88 + Reanimated 4.7 + worklets 0.13) also admits React 19.2.3 + RN 0.88 and worklets 0.10 + Reanimated 4.7, which cannot install; check:range rejects it. A consumer on SDK 57 installs 0.0.19. The same shape dropped SDK 54 at 0.0.11: a consumer on SDK 54 has no supported release, because 0.0.10 admits it only through a range that npm can reject. Supporting a second band honestly needs a second release line."
     },
     "@rootnative/components": {
       "oldestSupported": "sdk-57",
-      "range": "OK for the alpha.29 candidate on the SDK 58 band (verified 2026-10-23); OK for alpha.16 on the SDK 57 band (2026-09-21).",
+      "range": "OK for 0.0.3 as published (verified 2026-11-26); OK for the alpha.29 candidate on the SDK 58 band (2026-10-23); OK for alpha.16 on the SDK 57 band (2026-09-21).",
       "findings": [
         {
           "id": "optional-peers-are-static-imports",
@@ -114,9 +143,23 @@
           "status": "FIXED in 0.0.0-alpha.16 (published 2026-09-13): peerDependenciesMeta marks only react-native-reanimated and react-native-worklets optional. Verified by the alpha.16 cell on 2026-09-21, where install-peers added vector-icons, safe-area-context and svg as required peers."
         }
       ],
-      "fixtures": ["sdk-58"],
+      "fixtures": ["sdk-58", "rn-cli-0.88"],
       "newestSupported": "sdk-58",
       "verified": {
+        "0.0.3": {
+          "comment": "Published 2026-11-22 (npm dist-tag latest). The cell installed the published tarball from the registry: scripts/run-cell.sh rn-cli-0.88 @rootnative/components@0.0.3, run locally on 2026-11-26 on a clean install of the fixture. install-peers added @rootnative/core@>=0.0.3 <0.1.0, @rootnative/inertia@>=0.0.26 <0.1.0, react-native-safe-area-context@>=4.0.0 and react-native-svg@>=15.0.0, so the tree is what a consumer gets; the optional @react-native-vector-icons/material-design-icons stays out. The bundle counts come from a second bundle of the same tree, because run-cell.sh deletes its bundle on exit: modules are the __d( calls, and __workletHash counts the transformed worklets.",
+          "range": "OK — react >=19.3.0 <20.0.0, react-native >=0.88.0 <0.89.0, @rootnative/core >=0.0.3 <0.1.0, @rootnative/inertia >=0.0.26 <0.1.0, react-native-reanimated >=4.7.0 <4.8.0, react-native-worklets >=0.13.0 <0.14.0 are internally consistent (check:range, 2026-11-26).",
+          "rangeVerifiedOn": "2026-11-26",
+          "cellsFrom": "published tarball, @rootnative/components@0.0.3 from the registry",
+          "cellsRunOn": "2026-11-26",
+          "cellsRunBy": "scripts/run-cell.sh, local (macOS, node 24.14.1, yarn 1.22.22)",
+          "rn-cli-0.88": {
+            "peers": "pass",
+            "no-expo": "pass",
+            "bundle": "pass — Android, 1102 modules, 624 __workletHash",
+            "bundle:web": "n/a — no web target"
+          }
+        },
         "0.0.0-alpha.29+unreleased": {
           "comment": "Candidate for 0.0.0-alpha.29, the first release on the SDK 58 band, packed from the ui working tree (package.json still reads alpha.28: the release workflow bumps the version). Run locally on 2026-10-23 in the CI order. install-peers resolves a missing @rootnative/core peer from the registry, where alpha.28 still declares the SDK 57 band, so the cell needs the core candidate installed next to the components candidate. The cell was run that way (yarn add both tarballs, then install-peers, set-candidate, check-peers, bundle, bundle:web); scripts/run-cell.sh now takes the core tarball as an extra argument. The CI gate installs the same pair: ui packs the core candidate into the candidate artifact, and the cell installs every tarball of it. The first gate run on 2026-10-23, before that change, took core alpha.28 from the registry and failed the peers step.",
           "range": "OK — react >=19.3.0 <20.0.0, react-native >=0.88.0 <0.89.0, @rootnative/inertia >=0.0.20 <0.1.0 (components also react-native-reanimated >=4.7.0 <4.8.0, react-native-worklets >=0.13.0 <0.14.0) are internally consistent (check:range, 2026-10-23).",
@@ -159,10 +202,24 @@
     },
     "@rootnative/core": {
       "oldestSupported": "sdk-57",
-      "range": "OK for the alpha.29 candidate on the SDK 58 band (verified 2026-10-23); OK on the SDK 57 band before it.",
-      "fixtures": ["sdk-58"],
+      "range": "OK for 0.0.3 as published (verified 2026-11-26); OK for the alpha.29 candidate on the SDK 58 band (2026-10-23); OK on the SDK 57 band before it.",
+      "fixtures": ["sdk-58", "rn-cli-0.88"],
       "newestSupported": "sdk-58",
       "verified": {
+        "0.0.3": {
+          "comment": "Published 2026-11-22 (npm dist-tag latest). The cell installed the published tarball from the registry: scripts/run-cell.sh rn-cli-0.88 @rootnative/core@0.0.3, run locally on 2026-11-26 on a clean install of the fixture. install-peers added @rootnative/inertia@>=0.0.26 <0.1.0. The bundle counts come from a second bundle of the same tree, because run-cell.sh deletes its bundle on exit: modules are the __d( calls, and __workletHash counts the transformed worklets.",
+          "range": "OK — react >=19.3.0 <20.0.0, react-native >=0.88.0 <0.89.0, @rootnative/inertia >=0.0.26 <0.1.0 are internally consistent (check:range, 2026-11-26).",
+          "rangeVerifiedOn": "2026-11-26",
+          "cellsFrom": "published tarball, @rootnative/core@0.0.3 from the registry",
+          "cellsRunOn": "2026-11-26",
+          "cellsRunBy": "scripts/run-cell.sh, local (macOS, node 24.14.1, yarn 1.22.22)",
+          "rn-cli-0.88": {
+            "peers": "pass",
+            "no-expo": "pass",
+            "bundle": "pass — Android, 905 modules, 574 __workletHash",
+            "bundle:web": "n/a — no web target"
+          }
+        },
         "0.0.0-alpha.29+unreleased": {
           "comment": "Candidate for 0.0.0-alpha.29, the first release on the SDK 58 band, packed from the ui working tree (package.json still reads alpha.28: the release workflow bumps the version). Run locally on 2026-10-23 in the CI order. scripts/run-cell.sh sdk-58 ../ui/pack/rootnative-core-0.0.0-alpha.28.tgz.",
           "range": "OK — react >=19.3.0 <20.0.0, react-native >=0.88.0 <0.89.0, @rootnative/inertia >=0.0.20 <0.1.0 (components also react-native-reanimated >=4.7.0 <4.8.0, react-native-worklets >=0.13.0 <0.14.0) are internally consistent (check:range, 2026-10-23).",
