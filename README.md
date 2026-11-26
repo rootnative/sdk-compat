@@ -2,11 +2,12 @@
 
 Compatibility matrix for the `@rootnative/*` libraries.
 
-It answers one question: **which Expo SDK versions does a given release actually
-work on?** Each fixture is a minimal Expo app pinned to one SDK. CI installs a
-candidate build of a library into every fixture, checks the resulting tree, and
-bundles it. A cell that fails is an SDK the library does not support, whatever
-its peer range claims.
+It answers one question: **which Expo SDKs and which React Native CLI versions
+does a given release actually work on?** Each fixture is a minimal app pinned to
+one runtime: an Expo app for each Expo SDK, and a React Native CLI app with no
+Expo for each React Native band. CI installs a candidate build of a library into
+every fixture, checks the resulting tree, and bundles it. A cell that fails is a
+runtime the library does not support, whatever its peer range claims.
 
 ## Why this is a separate repository
 
@@ -19,7 +20,9 @@ other — every fixture owns its lockfile and resolves its own runtime.
     .github/workflows/compat.yml
     fixtures/sdk-57/         Expo 57 · RN 0.86 · Reanimated 4.5 · worklets 0.10
     fixtures/sdk-58/         Expo 58 · RN 0.88 · Reanimated 4.7 · worklets 0.13
+    fixtures/rn-cli-0.88/    RN CLI 20.2 · RN 0.88 · Reanimated 4.7 · worklets 0.13, no Expo
     scripts/check-peers.mjs  is the installed tree valid?
+    scripts/check-no-expo.mjs  does a fixture with no Expo stay without it?
     scripts/check-range.mjs  does the declared range promise the impossible?
     scripts/matrix.mjs       fixtures x specs, for CI
     scripts/run-cell.sh      run one cell locally, same order as CI
@@ -33,9 +36,11 @@ other — every fixture owns its lockfile and resolves its own runtime.
     yarn install --frozen-lockfile                # the pinned SDK runtime
     yarn add @rootnative/inertia@0.0.12           # the candidate
     cd ../.. && yarn check:peers fixtures/sdk-57  # assertion 1
-    cd fixtures/sdk-57 && yarn bundle             # assertion 2
+    yarn check:no-expo fixtures/sdk-57            # assertion 2, skips an Expo app
+    cd fixtures/sdk-57 && yarn bundle             # assertion 3
 
-A fixture pins the **SDK runtime** and nothing else. The library under test is
+A fixture pins the **runtime** (an Expo SDK, or a React Native version) and
+nothing else. The library under test is
 never a fixture dependency — the runner installs it on top, so one fixture
 serves every library and every candidate version. `yarn add` writes the
 candidate into `package.json` and `yarn.lock`; that is fine in an ephemeral CI
@@ -81,10 +86,10 @@ with fixture lockfiles deleted, across every library in `support.json`.
 **`workflow_dispatch`** — one package, by hand.
 
 Jobs: `prepare` builds the matrix from the cells each library claims in
-`support.json`, so adding an SDK needs no workflow edit — add the directory and
-claim it. `range` audits the declared range once per package; `cell` runs the
-three tree assertions per fixture, with `fail-fast: false` because the shape of
-the failure across SDKs is the result.
+`support.json`, so adding a fixture needs no workflow edit — add the directory
+and claim it. `range` audits the declared range once per package; `cell` runs
+the four tree assertions per fixture, with `fail-fast: false` because the shape
+of the failure across fixtures is the result.
 
 A library that claims no `fixtures` is an error, not a fallback to every
 directory on disk. The fallback used to re-run an SDK a library had dropped and
@@ -170,19 +175,57 @@ nothing about `dist` — `inertia` never loads it on native, and `dist` is exact
 where the alpha.10 worklet crash lived. A separate assertion has to cover the
 built output.
 
+**A React Native CLI fixture, because the libraries claim that host too.** The
+install docs of `ui` and `inertia` tell an app with no Expo how to set up Babel,
+and until 2026-11-26 no run checked that claim. `rn-cli-0.88` is the
+`@react-native-community/template` 0.88.1 app, cut down to its runtime: React
+Native 0.88.1, React 19.3.0 and CLI 20.2.0, plus the Reanimated and worklets
+pins of `sdk-58`. So Expo is the one difference between the two cells. The
+fixture has no `android/` and no `ios/` folder: `react-native bundle` needs
+neither, and it doesn't run Hermes. Its Babel config adds
+`react-native-worklets/plugin` by hand, as the docs tell a CLI app to do.
+
+**A CLI fixture has no web bundle.** A CLI app has no web target. Its web path
+is Vite with `@rootnative/web` or react-native-web, which is a different host
+and needs a fixture of its own. The runner skips `bundle:web` when a fixture has
+no such script, and the record says `n/a`. On native, `components` and `core`
+resolve to `dist/` too, so the CLI cell still covers their built output. The
+`dist/` of `inertia` stays covered by the web bundle of the Expo fixture.
+
+**`check-no-expo` keeps a CLI fixture free of Expo.** `install-peers` adds each
+required peer that is absent, so a library with an Expo peer gets Expo installed
+into a CLI fixture. The peer check and the bundle can still pass.
+`@rootnative/inertia-gradients` shows it: its `expo` peer brings `expo` and
+`expo-modules-core`, and `check-peers` passes. `check-no-expo.mjs` fails when a
+fixture that isn't an Expo app has `expo` or `expo-modules-core` in its tree,
+and it names the package that asked for it. It reads "Expo app" from the `expo`
+key in `app.json`, not from `package.json`. `yarn add` writes each added peer
+into `package.json`, `expo` too, so a rule there would skip the exact case it
+must catch.
+
+**No fixture for an Expo bare app.** A bare app keeps its own `android/` and
+`ios/` folders, but its JavaScript bundles through `expo export`, the same as a
+managed app. The bundle of the Expo fixture covers it.
+
 ## Results
 
-Both libraries pass every assertion on their declared band, built from source
-and packed:
+Both libraries pass every assertion on the fixtures they claim:
 
-| Package                  | Fixture | range | peers               | bundle | bundle:web |
-| ------------------------ | ------- | ----- | ------------------- | ------ | ---------- |
-| `@rootnative/inertia`    | sdk-58  | pass  | pass · 1 suppressed | pass   | pass       |
-| `@rootnative/components` | sdk-58  | pass  | pass · 1 suppressed | pass   | pass       |
-| `@rootnative/core`       | sdk-58  | pass  | pass · 1 suppressed | pass   | pass       |
+| Package                  | Fixture     | range | peers               | no-expo | bundle | bundle:web |
+| ------------------------ | ----------- | ----- | ------------------- | ------- | ------ | ---------- |
+| `@rootnative/inertia`    | sdk-58      | pass  | pass · 1 suppressed | n/a     | pass   | pass       |
+| `@rootnative/inertia`    | rn-cli-0.88 | pass  | pass                | pass    | pass   | n/a        |
+| `@rootnative/components` | sdk-58      | pass  | pass · 1 suppressed | n/a     | pass   | pass       |
+| `@rootnative/components` | rn-cli-0.88 | pass  | pass                | pass    | pass   | n/a        |
+| `@rootnative/core`       | sdk-58      | pass  | pass · 1 suppressed | n/a     | pass   | pass       |
+| `@rootnative/core`       | rn-cli-0.88 | pass  | pass                | pass    | pass   | n/a        |
 
 All three claim `sdk-58` (2026-10-23): `inertia` from its `0.0.20` candidate,
-`components` and `core` from their `0.0.0-alpha.29` candidates. `sdk-57` is the
+`components` and `core` from their `0.0.0-alpha.29` candidates, built from
+source and packed. All three claim `rn-cli-0.88` too (2026-11-26), from the
+published `inertia` `0.0.30`, `components` `0.0.3` and `core` `0.0.3`. The
+`peers` cell of the CLI fixture suppresses nothing: the worklets peer
+`@react-native/metro-config` is installed in a CLI app. `sdk-57` is the
 documented boundary: `inertia` `0.0.11` to `0.0.19` and `components`
 `alpha.16` to `alpha.28` were verified there. The `components` cell installs
 the `core` candidate next to it, from the same artifact in CI or as an extra
@@ -221,6 +264,10 @@ keeps `0.0.19`.
 
 Step 6 of 6 — the matrix is complete and both libraries are green through it.
 
+- **A React Native CLI fixture since 2026-11-26.** `rn-cli-0.88` runs in each
+  release gate of `inertia` and `ui` and in the Monday drift run. The first CI
+  runs (45843127821 and 45843133890) passed for `inertia` and `components`.
+  The `core` cell has run on a laptop only, until the next drift run.
 - **The workflow runs on GitHub.** The first run failed because every checkout
   took the caller's repository; commit `83f8628` names `rootnative/sdk-compat`
   on each checkout. The `inertia` cells for `0.0.11` came from its candidate

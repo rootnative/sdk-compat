@@ -1,6 +1,7 @@
 name: Compat Matrix
 
-# Answers which Expo SDK versions a @rootnative/* build actually works on.
+# Answers which Expo SDKs and React Native CLI versions a @rootnative/* build
+# actually works on.
 #
 # Three ways in, and the middle one is the reason this repository exists:
 #
