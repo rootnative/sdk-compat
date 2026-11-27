@@ -1,131 +1,142 @@
-import { useState } from 'react'
-import { ScrollView, View } from 'react-native'
-import { AppBar } from '@rootnative/components/appbar'
-import { Button } from '@rootnative/components/button'
-import { Checkbox } from '@rootnative/components/checkbox'
-import { Chip } from '@rootnative/components/chip'
-import { Dialog } from '@rootnative/components/dialog'
-import { LoadingIndicator } from '@rootnative/components/loading-indicator'
-import { mdiResolver } from '@rootnative/components/mdi'
 import { PortalHost } from '@rootnative/components/portal'
-import {
-  CircularProgress,
-  LinearProgress,
-} from '@rootnative/components/progress'
-import { Slider } from '@rootnative/components/slider'
-import { SnackbarProvider } from '@rootnative/components/snackbar'
-import { Switch } from '@rootnative/components/switch'
-import { TextField } from '@rootnative/components/text-field'
-import { Typography } from '@rootnative/components/typography'
+import { mdiResolver } from '@rootnative/components/mdi'
 import { ThemeProvider, darkTheme, lightTheme } from '@rootnative/core'
+import { Component, useMemo, useState } from 'react'
+import type { ComponentType, ReactNode } from 'react'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
+import {
+  SafeAreaProvider,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context'
+import { screens } from './screens.generated'
+import TouchScreen from './TouchScreen'
 
 /**
- * The one screen of the device app. The device workflow copies it over the
- * App.tsx of a new React Native CLI app, which has no Expo.
+ * The host of the device app. It shows one screen at a time: the touch screen
+ * first, then each demo screen of the `ui` example app. `Next` goes to the
+ * next one. After the last screen it lists each screen that threw.
  *
- * It has what a bundle can't prove: the theme, the icon font behind
- * `mdiResolver`, animations on the UI thread, a Portal, the safe-area inset
- * and the react-native-svg components. `touch.yaml` finds the switch and the
- * slider by their `testID`, and the other controls by their text.
+ * The bar is plain React Native on purpose. It must work when a component of
+ * the library under test doesn't.
  */
-function Screen() {
-  const [on, setOn] = useState(false)
-  const [checked, setChecked] = useState(true)
-  const [value, setValue] = useState(0.3)
-  const [text, setText] = useState('')
-  const [open, setOpen] = useState(false)
-  const [active, setActive] = useState(false)
+type Entry = { name: string; load: () => ComponentType }
+
+const entries: Entry[] = [
+  { name: 'touch', load: () => TouchScreen },
+  ...screens,
+]
+
+class Boundary extends Component<
+  { children: ReactNode; onError: (message: string) => void },
+  { message: string | null }
+> {
+  state = { message: null as string | null }
+
+  static getDerivedStateFromError(error: unknown) {
+    return { message: error instanceof Error ? error.message : String(error) }
+  }
+
+  componentDidCatch(error: unknown) {
+    this.props.onError(error instanceof Error ? error.message : String(error))
+  }
+
+  render() {
+    if (this.state.message !== null) {
+      return (
+        <Text style={styles.error}>SCREEN ERROR: {this.state.message}</Text>
+      )
+    }
+    return this.props.children
+  }
+}
+
+// The require of a screen runs here, in a render, so the boundary also gets
+// an error that a screen module throws when it loads.
+function Loaded({ entry }: { entry: Entry }) {
+  const Screen = useMemo(() => entry.load(), [entry])
+  return <Screen />
+}
+
+function Host() {
+  const insets = useSafeAreaInsets()
+  const [index, setIndex] = useState(0)
+  const [errors, setErrors] = useState<string[]>([])
+  const entry = entries[index]
 
   return (
-    <View style={{ flex: 1 }}>
-      <AppBar
-        title="RN CLI check"
-        insetTop
-        actions={[
-          {
-            icon: 'magnify',
-            accessibilityLabel: 'Search',
-            onPress: () => setOpen(true),
-          },
-        ]}
-      />
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
-        <Typography variant="titleMedium">
-          No Expo. Switch {on ? 'on' : 'off'}, slider {value.toFixed(2)}
-        </Typography>
-        <Button
-          variant="filled"
-          leadingIcon="plus"
-          onPress={() => setOpen(true)}
+    <View style={styles.root}>
+      <View style={[styles.bar, { paddingTop: insets.top + 4 }]}>
+        <Text style={styles.label}>
+          {entry ? `screen: ${entry.name}` : 'screen: summary'}
+        </Text>
+        <Pressable
+          testID="next"
+          accessibilityRole="button"
+          style={styles.next}
+          onPress={() => setIndex((i) => Math.min(i + 1, entries.length))}
         >
-          Open dialog
-        </Button>
-        <Button variant="outlined" leadingIcon="heart-outline">
-          Outlined
-        </Button>
-        <View style={{ flexDirection: 'row', gap: 16, alignItems: 'center' }}>
-          <Switch value={on} onValueChange={setOn} testID="switch" />
-          <Switch
-            value={on}
-            onValueChange={setOn}
-            selectedIcon="check"
-            unselectedIcon="close"
-          />
-          <Checkbox value={checked} onValueChange={setChecked} />
+          <Text style={styles.nextLabel}>Next</Text>
+        </Pressable>
+      </View>
+      {entry ? (
+        <Boundary
+          key={entry.name}
+          onError={(message) =>
+            setErrors((list) => [...list, `${entry.name}: ${message}`])
+          }
+        >
+          <Loaded entry={entry} />
+        </Boundary>
+      ) : (
+        <View style={styles.summary}>
+          <Text style={styles.label}>
+            {errors.length === 0
+              ? `errors: none in ${entries.length} screens`
+              : `errors: ${errors.length} of ${entries.length} screens`}
+          </Text>
+          {errors.map((line) => (
+            <Text key={line} style={styles.error}>
+              {line}
+            </Text>
+          ))}
         </View>
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          <Chip variant="assist" leadingIcon="calendar">
-            Today
-          </Chip>
-          <Chip
-            variant="filter"
-            selected={active}
-            onPress={() => setActive((v) => !v)}
-          >
-            Active
-          </Chip>
-        </View>
-        <Slider value={value} onValueChange={setValue} testID="slider" />
-        <TextField
-          label="Email"
-          variant="outlined"
-          leadingIcon="magnify"
-          value={text}
-          onChangeText={setText}
-        />
-        <LinearProgress progress={value} />
-        <LinearProgress />
-        <View style={{ flexDirection: 'row', gap: 16, alignItems: 'center' }}>
-          <CircularProgress progress={value} />
-          <CircularProgress />
-          <LoadingIndicator accessibilityLabel="Loading" />
-        </View>
-      </ScrollView>
-      <Dialog visible={open} onDismiss={() => setOpen(false)}>
-        <Dialog.Icon icon="alert-circle-outline" />
-        <Dialog.Title>Delete file?</Dialog.Title>
-        <Dialog.Content>This cannot be undone.</Dialog.Content>
-        <Dialog.Actions>
-          <Button variant="text" onPress={() => setOpen(false)}>
-            Cancel
-          </Button>
-        </Dialog.Actions>
-      </Dialog>
+      )}
     </View>
   )
 }
 
 export default function App() {
   return (
-    <ThemeProvider
-      theme={{ light: lightTheme, dark: darkTheme }}
-      iconResolver={mdiResolver}
-    >
-      <PortalHost>
-        <SnackbarProvider>
-          <Screen />
-        </SnackbarProvider>
-      </PortalHost>
-    </ThemeProvider>
+    <SafeAreaProvider>
+      <ThemeProvider
+        theme={{ light: lightTheme, dark: darkTheme }}
+        iconResolver={mdiResolver}
+      >
+        <PortalHost>
+          <Host />
+        </PortalHost>
+      </ThemeProvider>
+    </SafeAreaProvider>
   )
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: '#ffffff' },
+  bar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingBottom: 4,
+    backgroundColor: '#111111',
+  },
+  label: { color: '#ffffff', fontSize: 14 },
+  next: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#444444',
+  },
+  nextLabel: { color: '#ffffff', fontSize: 14 },
+  summary: { flex: 1, padding: 16, gap: 8, backgroundColor: '#111111' },
+  error: { color: '#ff6b6b', fontSize: 13, padding: 16 },
+})
