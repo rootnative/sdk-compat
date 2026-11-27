@@ -19,15 +19,21 @@ log() {
 }
 trap log EXIT
 
-# A new emulator still works on its first boot for some minutes. Wait until
-# its load is low, for 5 minutes at most, so the flows don't run on a slow
-# device.
+# A new emulator still works on its first boot for some minutes, and the
+# launcher can stop responding in that time. Android then shows a "not
+# responding" dialog over the app, and a flow can't find the screen under it.
+# So: hide those dialogs, give the boot one minute, then wait until the load
+# is low, for 5 more minutes at most.
+adb shell settings put global hide_error_dialogs 1
+sleep 60
 for _ in $(seq 1 30); do
   LOAD="$(adb shell cat /proc/loadavg | cut -d. -f1)"
-  [ "$LOAD" -lt 3 ] && break
+  [ "$LOAD" -lt 2 ] && break
   sleep 10
 done
 echo "==> emulator load: $(adb shell cat /proc/loadavg)"
+# Close a dialog that came up before the setting.
+adb shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS > /dev/null || true
 
 adb install -r "$APK"
 cd "$OUT"
