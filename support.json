@@ -1,6 +1,6 @@
 {
   "comment": "What the matrix has actually proven, not what a peer range claims. runtimes are read from each fixture's installed tree. `fixtures` is the set of cells a library claims to support: CI runs exactly those, so an unsupported SDK is a documented boundary rather than a red build. Update only from a green run.",
-  "lastVerified": "2026-11-26",
+  "lastVerified": "2026-11-27",
   "assertions": {
     "peers": "check-peers.mjs — every peer in the installed tree is satisfied",
     "no-expo": "check-no-expo.mjs — a fixture that isn't an Expo app has no expo and no expo-modules-core in its tree; n/a on an Expo app",
@@ -132,7 +132,7 @@
     },
     "@rootnative/components": {
       "oldestSupported": "sdk-57",
-      "range": "OK for 0.0.3 as published (verified 2026-11-26); OK for the alpha.29 candidate on the SDK 58 band (2026-10-23); OK for alpha.16 on the SDK 57 band (2026-09-21).",
+      "range": "OK for 0.0.4 as published (verified 2026-11-27); OK for 0.0.3 as published (verified 2026-11-26); OK for the alpha.29 candidate on the SDK 58 band (2026-10-23); OK for alpha.16 on the SDK 57 band (2026-09-21).",
       "findings": [
         {
           "id": "optional-peers-are-static-imports",
@@ -146,6 +146,20 @@
       "fixtures": ["sdk-58", "rn-cli-0.88"],
       "newestSupported": "sdk-58",
       "verified": {
+        "0.0.4": {
+          "comment": "Published on npm (dist-tag latest). The cell installed the published tarball from the registry: scripts/run-cell.sh rn-cli-0.88 @rootnative/components@0.0.4, run locally on 2026-11-27. install-peers added @rootnative/core@>=0.0.4 <0.1.0, @rootnative/inertia@>=0.0.26 <0.1.0, react-native-safe-area-context@>=4.0.0 and react-native-svg@>=15.0.0; the optional @react-native-vector-icons/material-design-icons stays out.",
+          "range": "OK — react >=19.3.0 <20.0.0, react-native >=0.88.0 <0.89.0, @rootnative/core >=0.0.4 <0.1.0, @rootnative/inertia >=0.0.26 <0.1.0, react-native-reanimated >=4.7.0 <4.8.0, react-native-worklets >=0.13.0 <0.14.0 are internally consistent (check:range, 2026-11-27).",
+          "rangeVerifiedOn": "2026-11-27",
+          "cellsFrom": "published tarball, @rootnative/components@0.0.4 from the registry",
+          "cellsRunOn": "2026-11-27",
+          "cellsRunBy": "scripts/run-cell.sh, local (macOS, node 24.14.1, yarn 1.22.22)",
+          "rn-cli-0.88": {
+            "peers": "pass",
+            "no-expo": "pass",
+            "bundle": "pass — Android",
+            "bundle:web": "n/a — no web target"
+          }
+        },
         "0.0.3": {
           "comment": "Published 2026-11-22 (npm dist-tag latest). The cell installed the published tarball from the registry: scripts/run-cell.sh rn-cli-0.88 @rootnative/components@0.0.3, run locally on 2026-11-26 on a clean install of the fixture. install-peers added @rootnative/core@>=0.0.3 <0.1.0, @rootnative/inertia@>=0.0.26 <0.1.0, react-native-safe-area-context@>=4.0.0 and react-native-svg@>=15.0.0, so the tree is what a consumer gets; the optional @react-native-vector-icons/material-design-icons stays out. The bundle counts come from a second bundle of the same tree, because run-cell.sh deletes its bundle on exit: modules are the __d( calls, and __workletHash counts the transformed worklets.",
           "range": "OK — react >=19.3.0 <20.0.0, react-native >=0.88.0 <0.89.0, @rootnative/core >=0.0.3 <0.1.0, @rootnative/inertia >=0.0.26 <0.1.0, react-native-reanimated >=4.7.0 <4.8.0, react-native-worklets >=0.13.0 <0.14.0 are internally consistent (check:range, 2026-11-26).",
@@ -202,10 +216,24 @@
     },
     "@rootnative/core": {
       "oldestSupported": "sdk-57",
-      "range": "OK for 0.0.3 as published (verified 2026-11-26); OK for the alpha.29 candidate on the SDK 58 band (2026-10-23); OK on the SDK 57 band before it.",
+      "range": "OK for 0.0.4 as published (verified 2026-11-27); OK for 0.0.3 as published (verified 2026-11-26); OK for the alpha.29 candidate on the SDK 58 band (2026-10-23); OK on the SDK 57 band before it.",
       "fixtures": ["sdk-58", "rn-cli-0.88"],
       "newestSupported": "sdk-58",
       "verified": {
+        "0.0.4": {
+          "comment": "Published on npm (dist-tag latest). The cell installed the published tarball from the registry: scripts/run-cell.sh rn-cli-0.88 @rootnative/core@0.0.4, run locally on 2026-11-27. install-peers added @rootnative/inertia@>=0.0.26 <0.1.0.",
+          "range": "OK — react >=19.3.0 <20.0.0, react-native >=0.88.0 <0.89.0, @rootnative/inertia >=0.0.26 <0.1.0 are internally consistent (check:range, 2026-11-27).",
+          "rangeVerifiedOn": "2026-11-27",
+          "cellsFrom": "published tarball, @rootnative/core@0.0.4 from the registry",
+          "cellsRunOn": "2026-11-27",
+          "cellsRunBy": "scripts/run-cell.sh, local (macOS, node 24.14.1, yarn 1.22.22)",
+          "rn-cli-0.88": {
+            "peers": "pass",
+            "no-expo": "pass",
+            "bundle": "pass — Android",
+            "bundle:web": "n/a — no web target"
+          }
+        },
         "0.0.3": {
           "comment": "Published 2026-11-22 (npm dist-tag latest). The cell installed the published tarball from the registry: scripts/run-cell.sh rn-cli-0.88 @rootnative/core@0.0.3, run locally on 2026-11-26 on a clean install of the fixture. install-peers added @rootnative/inertia@>=0.0.26 <0.1.0. The bundle counts come from a second bundle of the same tree, because run-cell.sh deletes its bundle on exit: modules are the __d( calls, and __workletHash counts the transformed worklets.",
           "range": "OK — react >=19.3.0 <20.0.0, react-native >=0.88.0 <0.89.0, @rootnative/inertia >=0.0.26 <0.1.0 are internally consistent (check:range, 2026-11-26).",
@@ -239,6 +267,35 @@
           }
         }
       }
+    },
+    "@rootnative/icons": {
+      "oldestSupported": "sdk-58",
+      "newestSupported": "sdk-58",
+      "range": "OK for 0.0.4 as published (verified 2026-11-27).",
+      "fixtures": ["sdk-58", "rn-cli-0.88"],
+      "verified": {
+        "0.0.4": {
+          "comment": "Published on npm (dist-tag latest). First matrix run of this package. Both cells installed the published tarball from the registry: scripts/run-cell.sh <fixture> @rootnative/icons@0.0.4, run locally on 2026-11-27. install-peers added @rootnative/core@>=0.0.4 <0.1.0 and then @rootnative/inertia@>=0.0.26 <0.1.0. The optional peers lucide-react-native and phosphor-react-native stay out, and both bundles pass without them.",
+          "range": "OK — react >=19.3.0 <20.0.0, react-native >=0.88.0 <0.89.0, @rootnative/core >=0.0.4 <0.1.0 are internally consistent (check:range, 2026-11-27).",
+          "rangeVerifiedOn": "2026-11-27",
+          "cellsFrom": "published tarball, @rootnative/icons@0.0.4 from the registry",
+          "cellsRunOn": "2026-11-27",
+          "cellsRunBy": "scripts/run-cell.sh, local (macOS, node 24.14.1, yarn 1.22.22)",
+          "sdk-58": {
+            "peers": "pass · 1 suppressed (react-native-worklets@0.13.0 wants @react-native/metro-config, listed in peer-exceptions.json)",
+            "no-expo": "n/a",
+            "bundle": "pass — Android, 615 modules",
+            "bundle:web": "pass — 173 modules"
+          },
+          "rn-cli-0.88": {
+            "peers": "pass",
+            "no-expo": "pass",
+            "bundle": "pass — Android",
+            "bundle:web": "n/a — no web target"
+          }
+        }
+      },
+      "note": "The root entry imports no icon package. An app installs lucide-react-native or phosphor-react-native only when it uses that resolver, so the matrix does not cover those two imports."
     }
   }
 }

@@ -209,7 +209,7 @@ managed app. The bundle of the Expo fixture covers it.
 
 ## Results
 
-Both libraries pass every assertion on the fixtures they claim:
+Each package passes every assertion on the fixtures it claims:
 
 | Package                  | Fixture     | range | peers               | no-expo | bundle | bundle:web |
 | ------------------------ | ----------- | ----- | ------------------- | ------- | ------ | ---------- |
@@ -219,11 +219,17 @@ Both libraries pass every assertion on the fixtures they claim:
 | `@rootnative/components` | rn-cli-0.88 | pass  | pass                | pass    | pass   | n/a        |
 | `@rootnative/core`       | sdk-58      | pass  | pass · 1 suppressed | n/a     | pass   | pass       |
 | `@rootnative/core`       | rn-cli-0.88 | pass  | pass                | pass    | pass   | n/a        |
+| `@rootnative/icons`      | sdk-58      | pass  | pass · 1 suppressed | n/a     | pass   | pass       |
+| `@rootnative/icons`      | rn-cli-0.88 | pass  | pass                | pass    | pass   | n/a        |
 
 All three claim `sdk-58` (2026-10-23): `inertia` from its `0.0.20` candidate,
 `components` and `core` from their `0.0.0-alpha.29` candidates, built from
 source and packed. All three claim `rn-cli-0.88` too (2026-11-26), from the
 published `inertia` `0.0.30`, `components` `0.0.3` and `core` `0.0.3`. The
+CLI cell passed again on `components` `0.0.4` and `core` `0.0.4` (2026-11-27).
+`@rootnative/icons` joined the matrix that day: `0.0.4` passes both cells, and
+its optional peers `lucide-react-native` and `phosphor-react-native` stay out
+of the tree. The
 `peers` cell of the CLI fixture suppresses nothing: the worklets peer
 `@react-native/metro-config` is installed in a CLI app. `sdk-57` is the
 documented boundary: `inertia` `0.0.11` to `0.0.19` and `components`
@@ -231,6 +237,16 @@ documented boundary: `inertia` `0.0.11` to `0.0.19` and `components`
 the `core` candidate next to it, from the same artifact in CI or as an extra
 tarball to `run-cell.sh`. Otherwise `install-peers` resolves `@rootnative/core`
 from the registry, where the previous release still declares the old band.
+
+**One device run backs the CLI cell.** A cell proves that Metro resolves and
+transforms a package. It doesn't prove that an app starts. On 2026-11-27 an
+app from `@react-native-community/template` 0.88.1, with no Expo, ran the
+published `components`, `core` and `icons` `0.0.4` and `inertia` `0.0.30` as a
+release build on an Android 16 emulator (x86_64). The app started with no JS
+error. The theme, the MaterialDesignIcons glyphs of `mdiResolver` with no
+`expo-font`, the animations, touch on `Switch`, `Chip` and `Slider`, a `Dialog`
+in `PortalHost`, and the `react-native-svg` components all worked. The run had
+one screen with 13 components. It didn't cover iOS, and no CI job repeats it.
 
 Getting there took two real fixes, both found by this matrix:
 
