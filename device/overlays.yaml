@@ -108,7 +108,11 @@ appId: ${APP_ID}
 - tapOn: 'Search trails'
 - assertVisible: 'Weekend weather'
 - takeScreenshot: overlay-search-view
-- tapOn: 'Back'
+# The navigation bar of Android has a Back button too, and that one closes
+# only the keyboard. The Back button of the view is the one above the list.
+- tapOn:
+    text: 'Back'
+    above: 'Hiking trails near me'
 - assertNotVisible: 'Weekend weather'
 
 # SideSheet: opens from the end edge, closes from an action in the sheet.
@@ -141,16 +145,20 @@ appId: ${APP_ID}
     timeout: 15000
 
 # Tooltip: a plain one from a long press, then a rich one that an action in
-# the tooltip closes.
+# the tooltip closes. A plain tooltip takes itself down after 1.5 seconds,
+# which is before a flow can look at it. So the flow uses the plain tooltip of
+# the demo that has no timeout, and a press closes it.
 - repeat:
     while:
       notVisible: 'screen: tooltip'
     commands:
       - tapOn:
           id: 'next'
-- longPressOn: 'Favourite'
-- assertVisible: 'Add to favourites'
+- longPressOn: 'Stays up'
+- assertVisible: '.*waits for a hover out or a press'
 - takeScreenshot: overlay-tooltip-plain
+- tapOn: 'Stays up'
+- assertNotVisible: '.*waits for a hover out or a press'
 - scrollUntilVisible:
     element: 'Show help'
     direction: DOWN
