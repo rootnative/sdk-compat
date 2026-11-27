@@ -73,24 +73,30 @@ appId: ${APP_ID}
     timeout: 2000
 
 # Portal: a toast on the snackbar layer, then a dialog on the dialog layer.
+# Both are made by hand in the demo, from a Portal and a Pressable.
 - repeat:
     while:
       notVisible: 'screen: portal'
     commands:
       - tapOn:
           id: 'next'
+# The toast is one button, so its accessibility label is what a flow can find
+# on both platforms. On Android it sits under the navigation bar of the
+# system, and a press on it presses Home. So the button of the demo hides it.
 - tapOn: 'Show toast'
-# The toast is one button. Its accessibility label is what a flow can find
-# on both platforms.
 - assertVisible: 'Dismiss toast'
 - takeScreenshot: overlay-portal-toast
-- tapOn: 'Dismiss toast'
+- tapOn: 'Hide toast'
 - assertNotVisible: 'Dismiss toast'
+# The scrim of this dialog is one button with a label, and on iOS that hides
+# the texts and the buttons in it from a flow. So the flow finds the scrim,
+# and closes the dialog with a press on the scrim above the dialog.
 - tapOn: 'Open dialog'
-- assertVisible: 'Save'
+- assertVisible: 'Dismiss dialog'
 - takeScreenshot: overlay-portal-dialog
-- tapOn: 'Save'
-- assertNotVisible: 'Save'
+- tapOn:
+    point: '50%,15%'
+- assertNotVisible: 'Dismiss dialog'
 
 # SearchView: opens from the bar, full screen on a phone.
 - repeat:
