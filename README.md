@@ -256,7 +256,10 @@ reads the screenshots. Run 46019944660 (2026-11-27, iPhone 17 Pro, iOS 26.5)
 passed with the same packages: the app started with no JS error, the glyphs
 drew, and the indeterminate indicators moved between two frames. That run
 had no touch step. The workflow now runs `device/touch.yaml` with Maestro: taps
-on a switch, a chip and the dialog, and a drag on the slider. Its last step removes the `UIAppFonts` entry from the built
+on a switch, a chip and the dialog, and a drag on the slider. Run 46024636173
+(2026-11-27) passed each step of the flow: the switch changed the state, the
+drag moved the slider from 0.30 to 0.50 or more, and the dialog opened and
+closed. Its last step removes the `UIAppFonts` entry from the built
 app and starts it again: each icon then draws as a `?` in a box, so an iOS app
 with no Expo needs the `Info.plist` step.
 

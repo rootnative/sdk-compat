@@ -196,3 +196,6 @@ jobs:
           name: device-ios
           path: ${{ runner.temp }}/out
           if-no-files-found: warn
+          # Maestro writes its screenshots and its debug output under a
+          # .maestro folder.
+          include-hidden-files: true
