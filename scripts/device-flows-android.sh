@@ -14,9 +14,20 @@ APP_ID=com.rnclicheck
 
 mkdir -p "$OUT"
 log() {
+  adb devices > "$OUT/adb-devices.txt" 2>&1 || true
   adb logcat -d -s 'ReactNativeJS:*' 'AndroidRuntime:E' > "$OUT/logcat.txt" || true
 }
 trap log EXIT
+
+# A new emulator still works on its first boot for some minutes. Wait until
+# its load is low, for 5 minutes at most, so the flows don't run on a slow
+# device.
+for _ in $(seq 1 30); do
+  LOAD="$(adb shell cat /proc/loadavg | cut -d. -f1)"
+  [ "$LOAD" -lt 3 ] && break
+  sleep 10
+done
+echo "==> emulator load: $(adb shell cat /proc/loadavg)"
 
 adb install -r "$APK"
 cd "$OUT"

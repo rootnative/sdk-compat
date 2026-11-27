@@ -88,15 +88,20 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      # Animations stay on: the app must show that its animations run.
+      # Animations stay on: the app must show that its animations run. The
+      # image is the AOSP one with no Google services, which has less work in
+      # the background: with the Google image the emulator went offline in the
+      # middle of a flow.
       - name: Run the flows on an emulator
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         env:
           MAESTRO_CLI_NO_ANALYTICS: 1
           MAESTRO_DRIVER_STARTUP_TIMEOUT: 240000
         with:
-          api-level: 35
-          target: google_apis
+          api-level: 36
+          target: default
+          cores: 4
+          ram-size: 4096M
           arch: x86_64
           profile: pixel_6
           disable-animations: false
