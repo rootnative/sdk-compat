@@ -23,12 +23,7 @@ permissions:
   contents: read
 
 env:
-  RN_VERSION: 0.88.1
-  RN_CLI_VERSION: 20.2.0
   APP_NAME: RnCliCheck
-  # The template uses Yarn 3. On CI, Yarn 3 refuses to write a lockfile, and a
-  # new app has none.
-  YARN_ENABLE_IMMUTABLE_INSTALLS: 'false'
 
 jobs:
   ios:
@@ -47,49 +42,15 @@ jobs:
           node-version-file: .nvmrc
           package-manager-cache: false
 
-      - name: Create the React Native CLI app
-        working-directory: ${{ runner.temp }}
-        run: |
-          npx --yes "@react-native-community/cli@$RN_CLI_VERSION" init "$APP_NAME" \
-            --version "$RN_VERSION" --pm yarn --skip-git-init --install-pods false
-
-      # The same install that the docs give to an app with no Expo: the
-      # packages, the required peers and the icon font. No expo-font.
-      - name: Install the packages
-        working-directory: ${{ runner.temp }}/${{ env.APP_NAME }}
+      # The same app as the Android workflow: the packages, the host and
+      # the demo screens of the ui example app.
+      - name: Make the device app
         env:
           COMPONENTS: ${{ inputs.components }}
           INERTIA: ${{ inputs.inertia }}
         run: |
-          yarn add \
-            "@rootnative/core@$COMPONENTS" \
-            "@rootnative/components@$COMPONENTS" \
-            "@rootnative/icons@$COMPONENTS" \
-            "@rootnative/inertia@$INERTIA" \
-            react-native-reanimated@~4.7.1 \
-            react-native-worklets@0.13.0 \
-            react-native-svg \
-            @react-native-vector-icons/material-design-icons
-          node -e '
-            const deps = require("./package.json").dependencies
-            const tree = require("fs").readdirSync("node_modules")
-            if (tree.includes("expo") || tree.includes("expo-modules-core")) {
-              throw new Error("The app has an Expo runtime.")
-            }
-            console.log(deps)
-          '
-
-      # The ui example app has one demo screen for each component. Take them
-      # from the tag of the installed version, so the screens and the packages
-      # agree. The script copies them into the app with the host from device/.
-      - name: Add the demo screens
-        working-directory: ${{ runner.temp }}/${{ env.APP_NAME }}
-        run: |
-          VERSION="$(node -p "require(\"@rootnative/components/package.json\").version")"
-          git clone --quiet --depth 1 --branch "v$VERSION" \
-            https://github.com/rootnative/ui.git "$RUNNER_TEMP/ui"
           mkdir -p "$RUNNER_TEMP/out"
-          node "$GITHUB_WORKSPACE/scripts/device-catalog.mjs" . "$RUNNER_TEMP/ui" "$RUNNER_TEMP/catalog.yaml"
+          bash scripts/device-app.sh "$RUNNER_TEMP" "$COMPONENTS" "$INERTIA"
 
       - name: Add the icon font to Info.plist
         working-directory: ${{ runner.temp }}/${{ env.APP_NAME }}

@@ -1,0 +1,114 @@
+name: Device run (Android, RN CLI)
+
+# The Android side of the device run. It makes the same React Native CLI app
+# with no Expo as the iOS workflow, builds a release APK, starts it on an
+# emulator and runs the same two Maestro flows: the touch flow, and a visit
+# to each demo screen of the ui example app. A person reads the screenshots.
+# Run it by hand.
+on:
+  workflow_dispatch:
+    inputs:
+      components:
+        description: 'Version of @rootnative/components, core and icons'
+        type: string
+        default: latest
+      inertia:
+        description: 'Version of @rootnative/inertia'
+        type: string
+        default: latest
+
+# The token only reads the repository.
+permissions:
+  contents: read
+
+env:
+  APP_NAME: RnCliCheck
+
+jobs:
+  android:
+    name: Android emulator
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+
+      - name: Make the device app
+        env:
+          COMPONENTS: ${{ inputs.components }}
+          INERTIA: ${{ inputs.inertia }}
+        run: bash scripts/device-app.sh "$RUNNER_TEMP" "$COMPONENTS" "$INERTIA"
+
+      # React Native 0.88 builds with NDK 27.1.12297006. A release build has
+      # the JS bundle in the APK, so the run needs no Metro server. The
+      # emulator is x86_64, so the build skips the other architectures.
+      - name: Build the app
+        working-directory: ${{ runner.temp }}/${{ env.APP_NAME }}/android
+        run: |
+          mkdir -p "$RUNNER_TEMP/out"
+          # `yes` ends with SIGPIPE, which pipefail reads as a failure.
+          (yes || true) | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'ndk;27.1.12297006' > /dev/null
+          if ! ./gradlew assembleRelease -PreactNativeArchitectures=x86_64 --console=plain \
+            > "$RUNNER_TEMP/out/gradle.log" 2>&1; then
+            tail -80 "$RUNNER_TEMP/out/gradle.log"
+            exit 1
+          fi
+          tail -4 "$RUNNER_TEMP/out/gradle.log"
+
+      # Autolinking copies the icon font into the APK. An Android app needs
+      # no other font step.
+      - name: Check the font in the app
+        run: |
+          APK="$RUNNER_TEMP/$APP_NAME/android/app/build/outputs/apk/release/app-release.apk"
+          echo "APK=$APK" >> "$GITHUB_ENV"
+          unzip -l "$APK" | grep MaterialDesignIcons.ttf
+
+      # Pinned by version and SHA-256.
+      - name: Install Maestro
+        env:
+          VERSION: 2.12.1
+          SHA256: 54dbb0716425626604973cbb374c585ca30272375d9ce15177a1152765ddd9d7
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/maestro.zip" "https://github.com/mobile-dev-inc/maestro/releases/download/cli-$VERSION/maestro.zip"
+          echo "$SHA256  $RUNNER_TEMP/maestro.zip" | sha256sum -c -
+          unzip -q "$RUNNER_TEMP/maestro.zip" -d "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/maestro/bin" >> "$GITHUB_PATH"
+
+      # The emulator needs KVM. A Linux runner gives access to it only with
+      # this udev rule.
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      # Animations stay on: the app must show that its animations run.
+      - name: Run the flows on an emulator
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        env:
+          MAESTRO_CLI_NO_ANALYTICS: 1
+          MAESTRO_DRIVER_STARTUP_TIMEOUT: 240000
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: false
+          script: bash scripts/device-flows-android.sh "${{ env.APK }}" "${{ runner.temp }}/catalog.yaml" "${{ runner.temp }}/out"
+
+      - name: Upload the screenshots and the logs
+        if: always()
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: device-android
+          path: ${{ runner.temp }}/out
+          if-no-files-found: warn
+          # Maestro writes its screenshots and its debug output under a
+          # .maestro folder.
+          include-hidden-files: true

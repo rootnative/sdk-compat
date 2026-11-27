@@ -259,7 +259,29 @@ had no touch step. The workflow now runs `device/touch.yaml` with Maestro: taps
 on a switch, a chip and the dialog, and a drag on the slider. Run 46024636173
 (2026-11-27) passed each step of the flow: the switch changed the state, the
 drag moved the slider from 0.30 to 0.50 or more, and the dialog opened and
-closed. Its last step removes the `UIAppFonts` entry from the built
+closed.
+
+**The device app shows each demo screen of the `ui` example app.** That app
+has one screen for each component. `scripts/device-catalog.mjs` copies the
+screens from the `ui` tag of the installed version into the device app, and
+writes a Maestro flow that opens each one and takes a screenshot. The host in
+`device/App.tsx` puts an error boundary around each screen and lists the
+errors on its last screen, so one bad screen doesn't hide the screens after
+it. An app with no Expo can't install two imports of those screens:
+`expo-router` gets a stand-in from `device/stubs`, and the source of
+`@rootnative/utils`, which isn't on npm, is copied from the tag. Run
+46036490404 (2026-11-27) opened 39 demo screens of `v0.0.4` and the touch
+screen: none threw, and each screenshot showed the components with their
+glyphs. The flow shows the top of each screen. It doesn't scroll, and it
+doesn't open the dialogs, sheets and menus of the demos.
+
+**Android has the same run as a workflow.** `device-android.yml` builds a
+release APK of the same app on an Ubuntu runner and runs the same two flows on
+an emulator (API 35, x86_64). `scripts/device-app.sh` makes the app for the two
+workflows, so they can't drift apart. Android needs no font step: autolinking
+copies the icon font into the APK, and the workflow checks that it is there.
+
+The last step of the workflow removes the `UIAppFonts` entry from the built
 app and starts it again: each icon then draws as a `?` in a box, so an iOS app
 with no Expo needs the `Info.plist` step.
 
