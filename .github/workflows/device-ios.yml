@@ -1,0 +1,172 @@
+name: Device run (iOS, RN CLI)
+
+# A matrix cell proves that Metro resolves and transforms a package. It
+# doesn't prove that an app starts. This workflow makes a React Native CLI
+# app with no Expo, installs the published packages, builds it for the iOS
+# simulator, starts it and takes screenshots. A person reads the screenshots.
+# Run it by hand.
+on:
+  workflow_dispatch:
+    inputs:
+      components:
+        description: 'Version of @rootnative/components, core and icons'
+        type: string
+        default: latest
+      inertia:
+        description: 'Version of @rootnative/inertia'
+        type: string
+        default: latest
+
+# The token only reads the repository.
+permissions:
+  contents: read
+
+env:
+  RN_VERSION: 0.88.1
+  RN_CLI_VERSION: 20.2.0
+  APP_NAME: RnCliCheck
+
+jobs:
+  ios:
+    name: iOS simulator
+    # React Native 0.88 needs Xcode 26. The macos-26 image has it as the
+    # default Xcode.
+    runs-on: macos-26
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+
+      - name: Create the React Native CLI app
+        working-directory: ${{ runner.temp }}
+        run: |
+          npx --yes "@react-native-community/cli@$RN_CLI_VERSION" init "$APP_NAME" \
+            --version "$RN_VERSION" --pm yarn --skip-git-init --install-pods false
+
+      # The same install that the docs give to an app with no Expo: the
+      # packages, the required peers and the icon font. No expo-font.
+      - name: Install the packages
+        working-directory: ${{ runner.temp }}/${{ env.APP_NAME }}
+        env:
+          COMPONENTS: ${{ inputs.components }}
+          INERTIA: ${{ inputs.inertia }}
+        run: |
+          yarn add \
+            "@rootnative/core@$COMPONENTS" \
+            "@rootnative/components@$COMPONENTS" \
+            "@rootnative/icons@$COMPONENTS" \
+            "@rootnative/inertia@$INERTIA" \
+            react-native-reanimated@~4.7.1 \
+            react-native-worklets@0.13.0 \
+            react-native-svg \
+            @react-native-vector-icons/material-design-icons
+          cp "$GITHUB_WORKSPACE/device/App.tsx" App.tsx
+          cp "$GITHUB_WORKSPACE/device/babel.config.js" babel.config.js
+          node -e '
+            const deps = require("./package.json").dependencies
+            const tree = require("fs").readdirSync("node_modules")
+            if (tree.includes("expo") || tree.includes("expo-modules-core")) {
+              throw new Error("The app has an Expo runtime.")
+            }
+            console.log(deps)
+          '
+
+      - name: Add the icon font to Info.plist
+        working-directory: ${{ runner.temp }}/${{ env.APP_NAME }}
+        run: |
+          npx rnvi-update-plist package.json "ios/$APP_NAME/Info.plist"
+          /usr/libexec/PlistBuddy -c 'Print :UIAppFonts' "ios/$APP_NAME/Info.plist"
+
+      - name: Install the pods
+        working-directory: ${{ runner.temp }}/${{ env.APP_NAME }}
+        run: |
+          bundle install
+          cd ios
+          bundle exec pod install
+
+      - name: Boot a simulator
+        run: |
+          UDID="$(xcrun simctl list devices available --json | node -e '
+            const { devices } = JSON.parse(require("fs").readFileSync(0, "utf8"))
+            const runtimes = Object.keys(devices).filter((r) => r.includes("iOS")).sort()
+            const phones = devices[runtimes.at(-1)].filter((d) => d.name.startsWith("iPhone"))
+            if (!phones.length) throw new Error("No iPhone simulator.")
+            const phone = phones.find((d) => d.name.includes("Pro")) ?? phones[0]
+            console.error(`${phone.name} on ${runtimes.at(-1)}`)
+            console.log(phone.udid)
+          ')"
+          echo "UDID=$UDID" >> "$GITHUB_ENV"
+          xcrun simctl boot "$UDID"
+          xcrun simctl bootstatus "$UDID" -b
+
+      # A Release build has the JS bundle in the app, so the run needs no
+      # Metro server.
+      - name: Build the app
+        working-directory: ${{ runner.temp }}/${{ env.APP_NAME }}/ios
+        run: |
+          mkdir -p "$RUNNER_TEMP/out"
+          if ! xcodebuild build \
+            -workspace "$APP_NAME.xcworkspace" \
+            -scheme "$APP_NAME" \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -destination "id=$UDID" \
+            -derivedDataPath "$RUNNER_TEMP/derived" \
+            CODE_SIGNING_ALLOWED=NO \
+            > "$RUNNER_TEMP/out/xcodebuild.log" 2>&1; then
+            grep -E "error:|\*\* BUILD FAILED" -A 3 "$RUNNER_TEMP/out/xcodebuild.log" | tail -80
+            exit 1
+          fi
+          tail -3 "$RUNNER_TEMP/out/xcodebuild.log"
+
+      - name: Check the font in the app
+        run: |
+          APP="$RUNNER_TEMP/derived/Build/Products/Release-iphonesimulator/$APP_NAME.app"
+          echo "APP=$APP" >> "$GITHUB_ENV"
+          echo "BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist")" >> "$GITHUB_ENV"
+          find "$APP" -name '*.ttf'
+          test -n "$(find "$APP" -name 'MaterialDesignIcons.ttf')"
+          /usr/libexec/PlistBuddy -c 'Print :UIAppFonts' "$APP/Info.plist" | grep MaterialDesignIcons.ttf
+
+      - name: Run the app
+        run: |
+          xcrun simctl install "$UDID" "$APP"
+          xcrun simctl launch "$UDID" "$BUNDLE_ID"
+          sleep 30
+          xcrun simctl io "$UDID" screenshot "$RUNNER_TEMP/out/ios-1.png"
+          sleep 3
+          # A second frame: the indeterminate indicators must not be at the
+          # same position in the two.
+          xcrun simctl io "$UDID" screenshot "$RUNNER_TEMP/out/ios-2.png"
+          xcrun simctl spawn "$UDID" log show --last 2m --style compact \
+            --predicate "process == \"$APP_NAME\"" > "$RUNNER_TEMP/out/app.log" || true
+          grep -E "Unhandled JS Exception|RCTFatal|\[runtime not ready\]" "$RUNNER_TEMP/out/app.log" && exit 1
+          # The app must still run. A crash at start leaves no process.
+          xcrun simctl spawn "$UDID" launchctl list | grep "$BUNDLE_ID"
+
+      # Does an app need the Info.plist step? Remove the font entry from the
+      # built app and start it again. The screenshot gives the answer, so
+      # this step never fails the job.
+      - name: Run the app with no font entry in Info.plist
+        continue-on-error: true
+        run: |
+          xcrun simctl terminate "$UDID" "$BUNDLE_ID" || true
+          /usr/libexec/PlistBuddy -c 'Delete :UIAppFonts' "$APP/Info.plist"
+          xcrun simctl install "$UDID" "$APP"
+          xcrun simctl launch "$UDID" "$BUNDLE_ID"
+          sleep 30
+          xcrun simctl io "$UDID" screenshot "$RUNNER_TEMP/out/ios-no-plist-entry.png"
+
+      - name: Upload the screenshots and the logs
+        if: always()
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: device-ios
+          path: ${{ runner.temp }}/out
+          if-no-files-found: warn
