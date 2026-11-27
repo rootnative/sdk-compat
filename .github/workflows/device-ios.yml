@@ -25,6 +25,9 @@ env:
   RN_VERSION: 0.88.1
   RN_CLI_VERSION: 20.2.0
   APP_NAME: RnCliCheck
+  # The template uses Yarn 3. On CI, Yarn 3 refuses to write a lockfile, and a
+  # new app has none.
+  YARN_ENABLE_IMMUTABLE_INSTALLS: 'false'
 
 jobs:
   ios:
