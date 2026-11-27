@@ -246,7 +246,19 @@ release build on an Android 16 emulator (x86_64). The app started with no JS
 error. The theme, the MaterialDesignIcons glyphs of `mdiResolver` with no
 `expo-font`, the animations, touch on `Switch`, `Chip` and `Slider`, a `Dialog`
 in `PortalHost`, and the `react-native-svg` components all worked. The run had
-one screen with 13 components. It didn't cover iOS, and no CI job repeats it.
+one screen with 13 components, and no CI job repeats it.
+
+**iOS has a workflow for the same run.** `device-ios.yml` makes the same app on
+a `macos-26` runner, from `device/App.tsx`. It adds the icon font to
+`Info.plist` with `rnvi-update-plist`, installs the pods, builds a Release app
+for the simulator, starts it and uploads screenshots. Run it by hand; a person
+reads the screenshots. Run 46019944660 (2026-11-27, iPhone 17 Pro, iOS 26.5)
+passed with the same packages: the app started with no JS error, the glyphs
+drew, and the indeterminate indicators moved between two frames. That run
+had no touch step. The workflow now runs `device/touch.yaml` with Maestro: taps
+on a switch, a chip and the dialog, and a drag on the slider. Its last step removes the `UIAppFonts` entry from the built
+app and starts it again: each icon then draws as a `?` in a box, so an iOS app
+with no Expo needs the `Info.plist` step.
 
 Getting there took two real fixes, both found by this matrix:
 

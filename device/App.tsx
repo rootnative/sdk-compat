@@ -25,7 +25,8 @@ import { ThemeProvider, darkTheme, lightTheme } from '@rootnative/core'
  *
  * It has what a bundle can't prove: the theme, the icon font behind
  * `mdiResolver`, animations on the UI thread, a Portal, the safe-area inset
- * and the react-native-svg components.
+ * and the react-native-svg components. `touch.yaml` finds the switch and the
+ * slider by their `testID`, and the other controls by their text.
  */
 function Screen() {
   const [on, setOn] = useState(false)
@@ -63,7 +64,7 @@ function Screen() {
           Outlined
         </Button>
         <View style={{ flexDirection: 'row', gap: 16, alignItems: 'center' }}>
-          <Switch value={on} onValueChange={setOn} />
+          <Switch value={on} onValueChange={setOn} testID="switch" />
           <Switch
             value={on}
             onValueChange={setOn}
@@ -84,7 +85,7 @@ function Screen() {
             Active
           </Chip>
         </View>
-        <Slider value={value} onValueChange={setValue} />
+        <Slider value={value} onValueChange={setValue} testID="slider" />
         <TextField
           label="Email"
           variant="outlined"

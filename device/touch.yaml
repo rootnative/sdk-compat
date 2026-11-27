@@ -1,0 +1,29 @@
+# The touch flow of the device app, for Maestro. The device workflow runs it
+# on the iOS simulator. Each step proves one kind of touch, and the text at
+# the top of the screen shows the state that the touch changed.
+appId: ${APP_ID}
+---
+- launchApp
+- assertVisible: 'No Expo\. Switch off, slider 0\.30'
+
+# A press on a Pressable.
+- tapOn:
+    id: 'switch'
+- assertVisible: 'No Expo\. Switch on, slider 0\.30'
+- tapOn: 'Active'
+
+# A drag on a PanResponder. The swipe starts at the centre of the slider and
+# goes right, so the value ends in the top half of the range.
+- swipe:
+    from:
+      id: 'slider'
+    direction: RIGHT
+- assertVisible: 'No Expo\. Switch on, slider (0\.[5-9][0-9]|1\.00)'
+- takeScreenshot: touch-1-controls
+
+# A press that opens a Portal, and a press on a button in the Portal.
+- tapOn: 'Open dialog'
+- assertVisible: 'Delete file\?'
+- takeScreenshot: touch-2-dialog
+- tapOn: 'Cancel'
+- assertNotVisible: 'Delete file\?'
