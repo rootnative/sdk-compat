@@ -1,0 +1,155 @@
+# The overlay flow of the device app, for Maestro. The visit to each demo
+# screen shows the top of a screen and opens nothing. This flow opens what
+# draws above a screen, through a Portal: a sheet, a dialog, a menu, a drawer,
+# a toast, the search view, a snackbar and a tooltip. For each one it checks
+# the content, takes a screenshot and closes it.
+#
+# The texts come from the demo screens of the ui example app at v0.0.4. When a
+# demo changes a text, change it here too.
+appId: ${APP_ID}
+---
+- launchApp
+
+# BottomSheet: opens from a button, closes from an action in the sheet.
+- repeat:
+    while:
+      notVisible: 'screen: bottom-sheet'
+    commands:
+      - tapOn:
+          id: 'next'
+- tapOn:
+    text: 'Open'
+    index: 0
+- assertVisible: 'Share file'
+- takeScreenshot: overlay-bottom-sheet
+- tapOn: 'Cancel'
+- assertNotVisible: 'Share file'
+
+# Dialog: opens from a button, closes from an action in the dialog.
+- repeat:
+    while:
+      notVisible: 'screen: dialog'
+    commands:
+      - tapOn:
+          id: 'next'
+- tapOn:
+    text: 'Open'
+    index: 0
+- assertVisible: 'Delete file\?'
+- takeScreenshot: overlay-dialog
+- tapOn: 'Cancel'
+- assertNotVisible: 'Delete file\?'
+
+# Menu: opens from its anchor, and an item press closes it and reports back.
+- repeat:
+    while:
+      notVisible: 'screen: menu'
+    commands:
+      - tapOn:
+          id: 'next'
+- assertVisible: 'Last action: nothing yet'
+- tapOn: 'More actions'
+- assertVisible: 'Duplicate'
+- takeScreenshot: overlay-menu
+- tapOn: 'Duplicate'
+- assertNotVisible: 'Last action: nothing yet'
+
+# NavigationDrawer: the modal drawer has the same labels as the drawer in the
+# page, so no text proves it. The screenshot shows it, a press on the scrim
+# closes it, and the next step can press Next only when the scrim is gone.
+- repeat:
+    while:
+      notVisible: 'screen: navigation-drawer'
+    commands:
+      - tapOn:
+          id: 'next'
+- tapOn: 'Open drawer'
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: overlay-navigation-drawer
+- tapOn:
+    point: '96%,50%'
+- waitForAnimationToEnd:
+    timeout: 2000
+
+# Portal: a toast on the snackbar layer, then a dialog on the dialog layer.
+- repeat:
+    while:
+      notVisible: 'screen: portal'
+    commands:
+      - tapOn:
+          id: 'next'
+- tapOn: 'Show toast'
+# The toast is one button. Its accessibility label is what a flow can find
+# on both platforms.
+- assertVisible: 'Dismiss toast'
+- takeScreenshot: overlay-portal-toast
+- tapOn: 'Dismiss toast'
+- assertNotVisible: 'Dismiss toast'
+- tapOn: 'Open dialog'
+- assertVisible: 'Save'
+- takeScreenshot: overlay-portal-dialog
+- tapOn: 'Save'
+- assertNotVisible: 'Save'
+
+# SearchView: opens from the bar, full screen on a phone.
+- repeat:
+    while:
+      notVisible: 'screen: search-view'
+    commands:
+      - tapOn:
+          id: 'next'
+- tapOn: 'Search trails'
+- assertVisible: 'Weekend weather'
+- takeScreenshot: overlay-search-view
+- tapOn: 'Back'
+- assertNotVisible: 'Weekend weather'
+
+# SideSheet: opens from the end edge, closes from an action in the sheet.
+- repeat:
+    while:
+      notVisible: 'screen: side-sheet'
+    commands:
+      - tapOn:
+          id: 'next'
+- tapOn: 'Open filters'
+- assertVisible: 'Filters'
+- takeScreenshot: overlay-side-sheet
+- tapOn: 'Cancel'
+- assertNotVisible: 'Filters'
+
+# Snackbar: shows a message, and takes itself down after 4 seconds.
+- repeat:
+    while:
+      notVisible: 'screen: snackbar'
+    commands:
+      - tapOn:
+          id: 'next'
+- tapOn:
+    text: 'Show'
+    index: 0
+- assertVisible: 'Photo saved'
+- takeScreenshot: overlay-snackbar
+- extendedWaitUntil:
+    notVisible: 'Photo saved'
+    timeout: 15000
+
+# Tooltip: a plain one from a long press, then a rich one that an action in
+# the tooltip closes.
+- repeat:
+    while:
+      notVisible: 'screen: tooltip'
+    commands:
+      - tapOn:
+          id: 'next'
+- longPressOn: 'Favourite'
+- assertVisible: 'Add to favourites'
+- takeScreenshot: overlay-tooltip-plain
+- scrollUntilVisible:
+    element: 'Show help'
+    direction: DOWN
+- tapOn: 'Show help'
+- assertVisible: 'Got it'
+- takeScreenshot: overlay-tooltip-rich
+- tapOn: 'Got it'
+- assertNotVisible: 'Got it'

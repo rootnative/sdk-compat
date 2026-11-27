@@ -2,8 +2,8 @@ name: Device run (Android, RN CLI)
 
 # The Android side of the device run. It makes the same React Native CLI app
 # with no Expo as the iOS workflow, builds a release APK, starts it on an
-# emulator and runs the same two Maestro flows: the touch flow, and a visit
-# to each demo screen of the ui example app. A person reads the screenshots.
+# emulator and runs the same three Maestro flows: the touch flow, a visit to
+# each demo screen of the ui example app, and the overlay flow. A person reads the screenshots.
 # Run it by hand.
 on:
   workflow_dispatch:

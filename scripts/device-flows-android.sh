@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install the device app on the running Android emulator and run the two
+# Install the device app on the running Android emulator and run the three
 # Maestro flows. The emulator action of the Android device workflow calls it.
 # It writes the log of the app when it ends, also after a failed flow.
 #
@@ -45,6 +45,10 @@ maestro test -e APP_ID="$APP_ID" --debug-output "$OUT/maestro" \
 echo "==> visit each demo screen"
 maestro test -e APP_ID="$APP_ID" --debug-output "$OUT/maestro-catalog" \
   "$CATALOG"
+
+echo "==> open the overlays"
+maestro test -e APP_ID="$APP_ID" --debug-output "$OUT/maestro-overlays" \
+  "$ROOT/device/overlays.yaml"
 
 # A crash of the app leaves a FATAL EXCEPTION line.
 log

@@ -3,9 +3,10 @@ name: Device run (iOS, RN CLI)
 # A matrix cell proves that Metro resolves and transforms a package. It
 # doesn't prove that an app starts. This workflow makes a React Native CLI
 # app with no Expo, installs the published packages, builds it for the iOS
-# simulator, starts it, takes screenshots and runs two Maestro flows: a touch
-# flow, and a visit to each demo screen of the ui example app. A person reads
-# the screenshots. Run it by hand.
+# simulator, starts it, takes screenshots and runs three Maestro flows: a
+# touch flow, a visit to each demo screen of the ui example app, and a flow
+# that opens the overlays of those screens. A person reads the screenshots.
+# Run it by hand.
 on:
   workflow_dispatch:
     inputs:
@@ -160,6 +161,18 @@ jobs:
           maestro --device "$UDID" test -e APP_ID="$BUNDLE_ID" \
             --debug-output "$RUNNER_TEMP/out/maestro-catalog" \
             "$RUNNER_TEMP/catalog.yaml"
+
+      # What draws above a screen: sheets, dialogs, a menu, a drawer, the
+      # search view, a snackbar and tooltips. The flow opens and closes each.
+      - name: Open the overlays
+        working-directory: ${{ runner.temp }}/out
+        env:
+          MAESTRO_CLI_NO_ANALYTICS: 1
+          MAESTRO_DRIVER_STARTUP_TIMEOUT: 240000
+        run: |
+          maestro --device "$UDID" test -e APP_ID="$BUNDLE_ID" \
+            --debug-output "$RUNNER_TEMP/out/maestro-overlays" \
+            "$GITHUB_WORKSPACE/device/overlays.yaml"
 
       # Does an app need the Info.plist step? Remove the font entry from the
       # built app and start it again. The screenshot gives the answer, so

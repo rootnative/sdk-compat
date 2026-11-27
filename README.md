@@ -276,10 +276,16 @@ glyphs. The flow shows the top of each screen. It doesn't scroll, and it
 doesn't open the dialogs, sheets and menus of the demos.
 
 **Android has the same run as a workflow.** `device-android.yml` builds a
-release APK of the same app on an Ubuntu runner and runs the same two flows on
+release APK of the same app on an Ubuntu runner and runs the same flows on
 an emulator (API 36, x86_64). `scripts/device-app.sh` makes the app for the two
 workflows, so they can't drift apart. Android needs no font step: autolinking
 copies the icon font into the APK, and the workflow checks that it is there.
+Run 46049765792 (2026-11-27) passed: the touch flow, and 39 demo screens of
+`v0.0.4` with no error. The emulator uses the AOSP image with no Google
+services, 4 cores and 4 GB of RAM, and the flow script hides the "not
+responding" dialogs of Android before it starts. Two runs failed without
+that: a weak emulator went offline in the middle of a flow, and a dialog of
+the launcher covered the app after the first boot.
 
 The last step of the workflow removes the `UIAppFonts` entry from the built
 app and starts it again: each icon then draws as a `?` in a box, so an iOS app
